@@ -394,7 +394,8 @@
                 <input type="text" id="searchAll" class="search-input" placeholder="Search Word">
               </div>
               
-              <div id="wordListContainer" class="w-full flex-grow overflow-y-auto px-2 mb-8 custom-scrollbar rounded-2xl p-4 mt-2" style="max-height: 320px;">
+              <!-- 修复：将卡片1的滚动容器高度改为与卡片3一致的计算方式 -->
+              <div id="wordListContainer" class="w-full flex-grow overflow-y-auto px-2 mb-8 custom-scrollbar rounded-2xl p-4 mt-2" style="max-height: calc(85vh - 320px);">
                 <ul class="space-y-4" id="wordList"></ul>
               </div>
               
