@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -61,35 +60,11 @@
         min-height: 500px;
         position: relative;
       }
-/* 新增滚动容器专用样式 */
-.scroll-container {
-  touch-action: pan-y; /* 明确允许垂直触摸滚动 */
-  pointer-events: auto; /* 确保能接收触摸事件 */
-  transform: translateZ(0); /* 提升图层优先级，避免被3D变换遮挡 */
-  -webkit-overflow-scrolling: touch; /* 启用iOS原生滚动优化 */
-}
-
-/* 修复卡片3D变换导致的事件问题 */
-.card {
-  backface-visibility: hidden;
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  min-height: 500px;
-  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-  pointer-events: auto; /* 允许卡片内元素接收事件 */
-}
-
-/* 确保隐藏的卡片不干扰事件 */
-.card:not(.active-card) {
-  pointer-events: none;
-}
-      .flipper {
-        position: relative;
-        width: 100%;
-        height: 100%;
-        transform-style: preserve-3d;
+      .scroll-container {
+        touch-action: pan-y;
+        pointer-events: auto;
+        transform: translateZ(0);
+        -webkit-overflow-scrolling: touch;
       }
       .card {
         backface-visibility: hidden;
@@ -99,12 +74,18 @@
         width: 100%;
         min-height: 500px;
         transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        pointer-events: auto;
+      }
+      .flipper {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        transform-style: preserve-3d;
       }
       .card1 { transform: rotateY(180deg); }
       .card2 { transform: rotateY(0deg); }
       .card3 { transform: rotateY(180deg); }
       
-      /* 添加移除动画 */
       @keyframes removeItem {
         0% { 
           opacity: 1;
@@ -127,7 +108,6 @@
         }
       }
       
-      /* 按钮点击反馈动画 - 持续时间调整为150ms */
       @keyframes buttonPulse {
         0% { transform: scale(1); }
         50% { transform: scale(0.95); }
@@ -145,7 +125,6 @@
           inset 0 1px 3px rgba(255, 255, 255, 0.9);
       }
       
-      /* 应用移除动画 */
       .word-item.removing {
         animation: removeItem 0.4s ease-out forwards;
         pointer-events: none;
@@ -167,7 +146,6 @@
         transition: all 0.2s ease-out;
       }
       
-      /* 临时取消收藏样式（更深的颜色、扁平效果） */
       .word-item.temporarily-removed {
         box-shadow: none !important;
         transform: none !important;
@@ -175,11 +153,11 @@
         cursor: default !important;
       }
       .skinB:not(.dark) .word-item.temporarily-removed {
-        background-color: #b0b0b0 !important; /* 更深的灰色 */
+        background-color: #b0b0b0 !important;
         color: #666 !important;
       }
       .dark .word-item.temporarily-removed {
-        background-color: #333 !important; /* 更深的深色 */
+        background-color: #333 !important;
         color: #aaa !important;
       }
       .word-item.temporarily-removed .action-btn {
@@ -203,7 +181,6 @@
         transform: scale(1.02);
       }
       
-      /* 操作按钮样式 */
       .action-btn {
         @apply p-1.5 rounded-full transition-all duration-200 flex items-center justify-center;
         width: 32px;
@@ -336,7 +313,6 @@
         @apply bg-skinB-light-primary hover:bg-skinB-light-primary/90;
       }
       
-      /* 按钮点击反馈动画类 - 持续时间调整为150ms */
       .animate-button-pulse {
         animation: buttonPulse 0.15s ease-in-out;
       }
@@ -377,8 +353,7 @@
       <div class="flip-container">
         <div class="flipper">
           <!-- 卡片2: 正面朗读区 -->
-          <!-- 卡片2: 正面朗读区 -->
-<div class="card card2 bg-white active-card">
+          <div class="card card2 bg-white active-card">
             <div class="flex flex-col items-center justify-start px-6 h-full">
               <div id="wordDisplay" class="text-4xl font-bold text-center my-3 mb-20 font-apple text-glow">
                 the
@@ -421,9 +396,9 @@
                 <input type="text" id="searchAll" class="search-input" placeholder="Search Word">
               </div>
               
-<div id="wordListContainer" class="w-full flex-grow overflow-y-auto px-2 mb-8 custom-scrollbar rounded-2xl p-4 mt-2 scroll-container" style="max-height: calc(85vh - 320px);">
-  <ul class="space-y-4" id="wordList"></ul>
-</div>
+              <div id="wordListContainer" class="w-full flex-grow overflow-y-auto px-2 mb-8 custom-scrollbar rounded-2xl p-4 mt-2 scroll-container" style="max-height: calc(85vh - 320px);">
+                <ul class="space-y-4" id="wordList"></ul>
+              </div>
               
               <div class="flex justify-center mt-auto mb-10">
                 <div class="flex gap-3 w-full max-w-md">
@@ -633,7 +608,6 @@
           saveCollectedWords();
         }
 
-        
         updateSkinSlider();
         updateTheme();
         initIntervalSlider();
@@ -643,6 +617,11 @@
         initCollectedList();
         setupEventListeners();
         updateButtonStates();
+        
+        // 移动端默认展开卡片
+        if (window.innerWidth < 1024) {
+          toggleExpand(true); // 传入true表示初始自动展开，不保存状态
+        }
       }
       
       // 保存收藏单词到本地存储
@@ -695,10 +674,7 @@
       
       // 添加按钮点击反馈动画
       function addButtonFeedback(button) {
-        // 添加动画类
         button.classList.add('animate-button-pulse');
-        
-        // 动画结束后移除类，以便下次点击可以再次触发
         setTimeout(() => {
           button.classList.remove('animate-button-pulse');
         }, 150);
@@ -807,14 +783,14 @@
         
         // 播放控制 - 添加按钮反馈
         elements.prevBtn.addEventListener('click', () => {
-          addButtonFeedback(elements.prevBtn); // 添加点击反馈
+          addButtonFeedback(elements.prevBtn);
           pauseAutoScroll();
-          navigateList(-1); // 上一个单词（在当前列表中）
+          navigateList(-1);
         });
         elements.nextBtn.addEventListener('click', () => {
-          addButtonFeedback(elements.nextBtn); // 添加点击反馈
+          addButtonFeedback(elements.nextBtn);
           pauseAutoScroll();
-          navigateList(1); // 下一个单词（在当前列表中）
+          navigateList(1);
         });
         elements.playBtn.addEventListener('click', () => {
           addButtonFeedback(elements.playBtn);
@@ -1078,7 +1054,7 @@
       }
       
       // 处理完全取消收藏
-      function handlePermanentlyRemove(word, element) {
+      function handlePermanentlyRemove(word, li) {
         const index = collectedWords.findIndex(item => item.word === word);
         if (index !== -1) {
           // 保存被删除单词在播放序列中的位置
@@ -1087,7 +1063,7 @@
           
           // 添加移除动画类
           if (element) {
-            element.classList.add('removing');
+            li.classList.add('removing');
             
             // 等待动画完成后再移除数据和更新列表
             setTimeout(() => {
@@ -1127,56 +1103,56 @@
       }
       
       // 切换卡片
- function showCard(targetCard) {
-  if (currentCard === targetCard || isAnimating) return;
-  isAnimating = true;
+      function showCard(targetCard) {
+        if (currentCard === targetCard || isAnimating) return;
+        isAnimating = true;
 
-  // 移除所有卡片的激活状态
-  Object.values(elements.cards).forEach(card => {
-    card.classList.remove('active-card');
-  });
+        // 移除所有卡片的激活状态
+        Object.values(elements.cards).forEach(card => {
+          card.classList.remove('active-card');
+        });
 
-  // 保存当前卡片的播放位置
-  if (currentCard === 1) {
-    card1Index = currentListIndex;
-  } else if (currentCard === 3) {
-    card3Index = currentListIndex;
-  }
+        // 保存当前卡片的播放位置
+        if (currentCard === 1) {
+          card1Index = currentListIndex;
+        } else if (currentCard === 3) {
+          card3Index = currentListIndex;
+        }
 
-  // 停止当前播放
-  const wasPlaying = isPlaying;
-  const wasAutoPlaying = isAutoPlaying;
-  stopAllPlayback();
+        // 停止当前播放
+        const wasPlaying = isPlaying;
+        const wasAutoPlaying = isAutoPlaying;
+        stopAllPlayback();
 
-  elements.cards[currentCard].style.transform = 'rotateY(180deg)';
-  elements.cards[targetCard].style.transform = 'rotateY(0deg)';
+        elements.cards[currentCard].style.transform = 'rotateY(180deg)';
+        elements.cards[targetCard].style.transform = 'rotateY(0deg)';
 
-  setTimeout(() => {
-    currentCard = targetCard;
-    // 为当前卡片添加激活状态
-    elements.cards[currentCard].classList.add('active-card');
-    isAnimating = false;
+        setTimeout(() => {
+          currentCard = targetCard;
+          // 为当前卡片添加激活状态
+          elements.cards[currentCard].classList.add('active-card');
+          isAnimating = false;
 
-    // 恢复目标卡片的播放位置
-    updateCurrentPlayList();
+          // 恢复目标卡片的播放位置
+          updateCurrentPlayList();
 
-    // 重新初始化列表UI
-    if (targetCard === 1) {
-      initWordList();
-      if (!isAutoScrollPaused) centerActiveWord();
-    } else if (targetCard === 3) {
-      initCollectedList();
-    }
+          // 重新初始化列表UI
+          if (targetCard === 1) {
+            initWordList();
+            if (!isAutoScrollPaused) centerActiveWord();
+          } else if (targetCard === 3) {
+            initCollectedList();
+          }
 
-    // 恢复播放状态
-    if (wasPlaying || wasAutoPlaying) {
-      isAutoPlaying = wasAutoPlaying;
-      startPlayingCurrentWord();
-    } else {
-      showCurrentWord();
-    }
-  }, 800);
-}
+          // 恢复播放状态
+          if (wasPlaying || wasAutoPlaying) {
+            isAutoPlaying = wasAutoPlaying;
+            startPlayingCurrentWord();
+          } else {
+            showCurrentWord();
+          }
+        }, 800);
+      }
       
       // 根据当前卡片加载对应的列表和记忆的索引
       function updateCurrentPlayList() {
@@ -1570,8 +1546,13 @@
       }
       
       // 切换展开/收缩
-      function toggleExpand() {
-        isExpanded = !isExpanded;
+      function toggleExpand(initialExpand = false) {
+        if (!initialExpand) {
+          isExpanded = !isExpanded;
+        } else {
+          isExpanded = true;
+        }
+        
         if (isExpanded) {
           elements.expandableCard.classList.add('fixed', 'inset-0', 'm-0', 'z-40', 'rounded-none', 'p-8');
           elements.expandableCard.classList.remove('rounded-3xl', 'mt-6', 'mb-8', 'p-6');
@@ -1584,6 +1565,11 @@
           elements.expandBtn.innerHTML = '<i class="fa fa-expand text-lg"></i>';
           document.body.classList.remove('overflow-hidden');
           elements.navbar.classList.remove('opacity-0', 'pointer-events-none');
+        }
+        
+        // 非初始展开时才保存状态
+        if (!initialExpand) {
+          localStorage.setItem('isExpanded', isExpanded);
         }
       }
       
