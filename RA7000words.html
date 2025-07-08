@@ -1,0 +1,1676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Words</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        ios: {
+                            blue: '#0071E3',
+                            blueDark: '#2997FF',
+                            grayLight: '#F5F5F7',
+                            grayDark: '#1C1C1E',
+                            cardLight: '#FFFFFF',
+                            cardDark: '#2C2C2E',
+                            textLight: '#1D1D1F',
+                            textDark: '#F5F5F7',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+                        phonetic: ['"Times New Roman"', 'Georgia', 'serif']
+                    },
+                    boxShadow: {
+                        'ios': '0 4px 20px rgba(0, 0, 0, 0.08)',
+                        'ios-dark': '0 4px 20px rgba(0, 0, 0, 0.3)',
+                        'ios-button': '0 1px 3px rgba(0, 0, 0, 0.1)',
+                        'ios-button-dark': '0 1px 3px rgba(0, 0, 0, 0.3)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            
+            /* 自定义滚动条 */
+            .custom-scrollbar::-webkit-scrollbar {
+                width: 6px;
+            }
+            
+            .custom-scrollbar::-webkit-scrollbar-track {
+                background: transparent;
+            }
+            
+            .custom-scrollbar::-webkit-scrollbar-thumb {
+                background-color: rgba(156, 163, 175, 0.5);
+                border-radius: 3px;
+            }
+            
+            .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+                background-color: rgba(75, 85, 99, 0.5);
+            }
+
+            /* 下拉菜单样式 */
+            .dropdown-content {
+                transform-origin: top;
+                transform: scaleY(0);
+                opacity: 0;
+                transition: transform 0.4s ease, opacity 0.4s ease;
+            }
+            
+            .dropdown-content.show {
+                transform: scaleY(1);
+                opacity: 1;
+            }
+            
+            /* 序号样式 */
+            .voice-number {
+                display: inline-block;
+                width: 20px;
+                text-align: center;
+                margin-right: 8px;
+            }
+            
+            /* 搜索框样式 */
+            .search-input {
+                background-color: rgba(0, 0, 0, 0.05);
+                border: none;
+                outline: none;
+                border-radius: 16px;
+                padding: 4px 12px;
+                font-size: 0.9rem;
+                width: 120px;
+                transition: all 0.2s ease;
+            }
+            
+            .search-input:focus {
+                width: 160px;
+                background-color: rgba(0, 0, 0, 0.08);
+            }
+            
+            .dark .search-input {
+                background-color: rgba(255, 255, 255, 0.05);
+                color: #F5F5F7;
+            }
+            
+            .dark .search-input:focus {
+                background-color: rgba(255, 255, 255, 0.08);
+            }
+
+            /* 仅保留音标动画样式 */
+            .phonetic-transition {
+                opacity: 1;
+                transition: opacity 0.3s ease-out;
+            }
+            
+            .phonetic-transition.fading {
+                opacity: 0;
+            }
+
+            /* 全屏控制按钮样式 - MacOS风格 */
+            .window-control-btn {
+                width: 36px;
+                height: 36px;
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background-color: rgba(0, 0, 0, 0.05);
+                color: #1D1D1F;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+            
+            .dark .window-control-btn {
+                background-color: rgba(255, 255, 255, 0.05);
+                color: #F5F5F7;
+            }
+            
+            .window-control-btn:hover {
+                background-color: rgba(0, 0, 0, 0.1);
+            }
+            
+            .dark .window-control-btn:hover {
+                background-color: rgba(255, 255, 255, 0.1);
+            }
+
+            /* 全屏动画过渡样式 */
+            #pronunciation-area {
+                transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                transform-origin: center;
+            }
+            
+            #pronunciation-area.fullscreen {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                z-index: 9999 !important;
+                border-radius: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                max-height: none !important;
+                min-height: 0 !important;
+                margin: 0 !important;
+                padding: 2rem !important;
+            }
+            
+            /* 背景遮罩动画 */
+            .fullscreen-backdrop {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(0, 0, 0, 0.7);
+                z-index: 9998;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            
+            .fullscreen-backdrop.show {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            /* 单词和音标在动画过程中的平滑过渡 */
+            #word-display, #phonetic-display {
+                transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            /* 毛玻璃效果按钮样式 */
+            .glass-button {
+                background: rgba(255, 255, 255, 0.7);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                transition: all 0.3s ease;
+            }
+            
+            .dark .glass-button {
+                background: rgba(30, 30, 30, 0.7);
+            }
+            
+            /* 按钮组容器 */
+            .button-group {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1rem;
+                width: 100%;
+                max-width: 600px;
+            }
+            
+            /* 按钮容器 - 用于整体显示/隐藏动画 */
+            .controls-container {
+                opacity: 1;
+                transform: translateY(0);
+                transition: 
+                    opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+                    transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+                pointer-events: auto;
+            }
+            
+            .controls-container.hidden {
+                opacity: 0;
+                transform: translateY(20px);
+                pointer-events: none;
+            }
+            
+            /* 响应式调整 */
+            @media (max-width: 768px) {
+                .button-group {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+                .button-group .play-btn {
+                    grid-column: span 2;
+                    justify-self: center;
+                }
+            }
+            
+            @media (max-width: 480px) {
+                .button-group {
+                    grid-template-columns: 1fr;
+                }
+                .button-group .play-btn {
+                    grid-column: span 1;
+                }
+            }
+        }
+    </style>
+</head>
+<body class="bg-ios-grayLight dark:bg-ios-grayDark min-h-screen font-sans overflow-hidden">
+    <!-- 全屏背景遮罩 -->
+    <div id="fullscreen-backdrop" class="fullscreen-backdrop"></div>
+
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6 max-w-8xl min-h-screen flex flex-col">
+        <!-- 顶部标题和模式切换 -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 w-full">
+            <h1 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-ios-textLight dark:text-ios-textDark w-full md:w-auto">
+                猩际RA句子单词7000
+            </h1>
+            
+            <div class="flex flex-wrap items-center gap-3 w-full justify-center md:justify-end">
+                <!-- 音频来源选择下拉框 -->
+                <div class="relative bg-white dark:bg-ios-cardDark rounded-full shadow-ios dark:shadow-ios-dark min-w-[280px]">
+                    <button id="voice-selector" class="flex items-center justify-between gap-2 px-6 py-3 w-full">
+                        <span id="selected-voice" class="text-ios-textLight dark:text-ios-textDark">美音</span>
+                        <i class="fa fa-chevron-down text-ios-textLight dark:text-ios-textDark"></i>
+                    </button>
+                    <div id="voice-dropdown" class="dropdown-content absolute top-full left-0 right-0 mt-1 bg-white dark:bg-ios-cardDark rounded-xl shadow-ios dark:shadow-ios-dark z-10 overflow-hidden custom-scrollbar">
+                        <ul class="py-1">
+                            <li class="voice-option px-6 py-3 hover:bg-ios-grayLight dark:hover:bg-gray-700 cursor-pointer selected" data-voice="youdao-us">
+                                <span class="voice-number text-ios-textLight dark:text-ios-textDark/70">1</span><span class="text-ios-textLight dark:text-ios-textDark">美音</span>
+                            </li>
+                            <li class="voice-option px-6 py-3 hover:bg-ios-grayLight dark:hover:bg-gray-700 cursor-pointer" data-voice="youdao-uk">
+                                <span class="voice-number text-ios-textLight dark:text-ios-textDark/70">2</span><span class="text-ios-textLight dark:text-ios-textDark">英音</span>
+                            </li>
+                            <li class="voice-option px-6 py-3 hover:bg-ios-grayLight dark:hover:bg-gray-700 cursor-pointer" data-voice="standard-us">
+                                <span class="voice-number text-ios-textLight dark:text-ios-textDark/70">3</span><span class="text-ios-textLight dark:text-ios-textDark">Standard American</span>
+                            </li>
+                            <li class="voice-option px-6 py-3 hover:bg-ios-grayLight dark:hover:bg-gray-700 cursor-pointer" data-voice="slow-english">
+                                <span class="voice-number text-ios-textLight dark:text-ios-textDark/70">4</span><span class="text-ios-textLight dark:text-ios-textDark">Slow English</span>
+                            </li>
+                            <li class="voice-option px-6 py-3 hover:bg-ios-grayLight dark:hover:bg-gray-700 cursor-pointer" data-voice="british">
+                                <span class="voice-number text-ios-textLight dark:text-ios-textDark/70">5</span><span class="text-ios-textLight dark:text-ios-textDark">British English</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- 单词统计信息展示区 - 左侧 -->
+                <div class="px-6 py-3 rounded-full bg-white dark:bg-ios-cardDark text-ios-textLight dark:text-ios-textDark shadow-ios dark:shadow-ios-dark min-w-[160px] text-center">
+                    <span id="word-stats">Total: 0 | Current: 0</span>
+                </div>
+                
+                <!-- 列表切换按钮 - 中间 -->
+                <button id="collected-btn" class="cursor-pointer px-6 py-3 rounded-full bg-white dark:bg-ios-cardDark text-ios-textLight dark:text-ios-textDark shadow-ios dark:shadow-ios-dark min-w-[160px] text-center">
+                    <i class="fa fa-bookmark mr-2"></i>
+                    <span>Collected</span>
+                </button>
+                
+                <!-- 导出已收藏按钮 - 右侧 -->
+                <button id="export-collected-btn" class="cursor-pointer px-6 py-3 rounded-full bg-white dark:bg-ios-cardDark text-ios-textLight dark:text-ios-textDark shadow-ios dark:shadow-ios-dark min-w-[160px] text-center">
+                    <i class="fa fa-download mr-2"></i>
+                    <span>Export</span>
+                </button>
+                
+                <button id="theme-toggle" class="w-12 h-12 rounded-full bg-white dark:bg-ios-cardDark shadow-ios dark:shadow-ios-dark flex items-center justify-center">
+                    <i class="fa fa-moon-o dark:hidden text-ios-textLight text-xl"></i>
+                    <i class="fa fa-sun-o hidden dark:block text-ios-textDark text-xl"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- 主体内容 -->
+        <main class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow w-full">
+            <!-- 中间朗读区 - 降低高度并增加底部空白 -->
+            <div id="pronunciation-area" class="lg:col-span-10 bg-white dark:bg-ios-cardDark rounded-2xl shadow-ios dark:shadow-ios-dark p-6 md:p-8 flex flex-col h-full min-h-[600px] mb-8">
+                <!-- 右上角全屏控制按钮 -->
+                <div class="self-end mb-4">
+                    <button id="fullscreen-toggle" class="window-control-btn">
+                        <i class="fa fa-expand"></i>
+                    </button>
+                </div>
+                
+                <!-- 单词和音标显示（居中） -->
+                <div class="flex-grow flex flex-col items-center justify-center text-center">
+                    <div class="mb-6">
+                        <div id="word-display" class="text-[clamp(2rem,5vw,3.5rem)] font-bold text-ios-textLight dark:text-ios-textDark">Nothing</div>
+                    </div>
+                    
+                    <div class="mb-8" id="phonetic-container">
+                        <div id="phonetic-display" class="text-[clamp(0.9rem,1.8vw,1.4rem)] font-phonetic text-gray-500 dark:text-gray-400 italic phonetic-transition">  </div>
+                    </div>
+                </div>
+
+                <!-- 控制按钮（居中） -->
+                <div class="controls-container mt-4 mb-6 flex flex-col items-center w-full">
+                    <!-- 第一排按钮：Previous, Play/Pause, Next -->
+                    <div class="button-group mb-6">
+                        <button id="prev-btn" class="glass-button flex items-center justify-center gap-2 px-6 py-4 rounded-full text-ios-textLight dark:text-ios-textDark shadow-ios-button dark:shadow-ios-button-dark" disabled>
+                            <i class="fa fa-step-backward"></i>
+                            <span>Previous</span>
+                        </button>
+                        
+                        <button id="play-btn" class="glass-button play-btn flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-ios-blue dark:bg-ios-blueDark text-ios-textLight dark:text-white shadow-ios-button dark:shadow-ios-button-dark min-w-[140px]" disabled>
+                            <i class="fa fa-play"></i>
+                            <span>Play</span>
+                        </button>
+                        
+                        <button id="next-btn" class="glass-button flex items-center justify-center gap-2 px-6 py-4 rounded-full text-ios-textLight dark:text-ios-textDark shadow-ios-button dark:shadow-ios-button-dark" disabled>
+                            <span>Next</span>
+                            <i class="fa fa-step-forward"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- 第二排按钮：Slow, Auto Play, Add to Collection -->
+                    <div class="button-group">
+                        <button id="slow-btn" class="glass-button flex items-center justify-center gap-2 px-6 py-4 rounded-full text-ios-textLight dark:text-ios-textDark shadow-ios-button dark:shadow-ios-button-dark" disabled>
+                            <i class="fa fa-clock-o"></i>
+                            <span>Slow</span>
+                        </button>
+                        
+                        <button id="auto-play-btn" class="glass-button flex items-center justify-center gap-2 px-6 py-4 rounded-full text-ios-textLight dark:text-ios-textDark shadow-ios-button dark:shadow-ios-button-dark" disabled>
+                            <i class="fa fa-repeat"></i>
+                            <span>Auto Play</span>
+                        </button>
+                        
+                        <button id="add-collection-btn" class="glass-button flex items-center justify-center gap-2 px-6 py-4 rounded-full text-ios-textLight dark:text-ios-textDark shadow-ios-button dark:shadow-ios-button-dark" disabled>
+                            <i class="fa fa-plus mr-1"></i>
+                            <span>Add</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧单词列表 -->
+            <div class="lg:col-span-2">
+                <div class="bg-white dark:bg-ios-cardDark rounded-2xl shadow-ios dark:shadow-ios-dark p-4 h-full flex flex-col minh-[500px] mb-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 id="list-title" class="text-lg font-semibold text-ios-textLight dark:text-ios-textDark">Main List</h2>
+                        <div class="relative">
+                            <input type="text" id="list-search" class="search-input">
+                        </div>
+                    </div>
+                    <ul id="word-list" class="space-y-2 flex-grow overflow-y-auto pr-2 custom-scrollbar" style="max-height: calc(100vh - 250px);">
+                        <!-- 初始状态为空 -->
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="hidden lg:block lg:col-span-2"></div>
+        </main>
+    </div>
+
+    <script>
+        // 内置单词数据
+        const builtInWords = [
+         "the", "of", "and", "to", "a", "in", "is", "that", "for", "are", "it", "as", "with", "have", "on", "be", "or", "their", "from", "an", "they", "this", "by", "can", "has", "not", "which", "more", "people", "you", "but", "at", "was", "we", "new", "our", "one", "were", "will", "than", "all", "also", "there", "many", "how", "most", "these", "about", "been", "some", "when", "who", "time", "other", "years", "may", "research", "world", "study", "if", "so", "your", "he", "them", "work", "such", "water", "its", "into", "what", "up", "use", "first", "over", "while", "do", "found", "life", "us", "his", "researchers", "brain", "had", "like", "only", "used", "out", "because", "make", "often", "those", "information", "year", "could", "important", "much", "through", "two", "students", "take", "way", "made", "now", "would", "change", "however", "different", "between", "human", "long", "early", "experience", "scientists", "just", "no", "social", "well", "according", "before", "business", "power", "very", "after", "any", "around", "even", "health", "help", "then", "countries", "during", "t", "where", "being", "cells", "earth", "likely", "system", "become", "both", "known", "university", "economic", "since", "still", "called", "day", "high", "language", "must", "areas", "back", "might", "able", "body", "energy", "large", "need", "technology", "too", "animals", "including", "less", "money", "part", "past", "said", "same", "school", "three", "each", "food", "government", "living", "major", "should", "states", "why", "changes", "children", "english", "evidence", "global", "great", "making", "natural", "plants", "yet", "course", "data", "say", "whether", "activity", "another", "better", "country", "development", "environment", "example", "family", "find", "get", "increased", "key", "light", "process", "public", "risk", "think", "understand", "united", "women", "across", "child", "did", "europe", "every", "future", "learning", "least", "little", "lot", "others", "plant", "problems", "species", "student", "using", "age", "climate", "go", "keep", "particularly", "political", "population", "produce", "results", "second", "small", "things", "today", "war", "almost", "although", "american", "century", "current", "humans", "international", "men", "number", "planet", "services", "society", "soil", "team", "within", "amount", "common", "developed", "disease", "down", "essential", "far", "feel", "form", "industry", "own", "place", "re", "recent", "result", "science", "solar", "specific", "state", "systems", "therefore", "thought", "australia", "based", "create", "culture", "difficult", "dollars", "education", "five", "good", "history", "impact", "include", "know", "led", "level", "material", "means", "modern", "period", "point", "problem", "rather", "role", "says", "support", "together", "without", "working", "banking", "certain", "comes", "days", "demand", "effects", "ever", "few", "growth", "hours", "knowledge", "low", "million", "order", "paper", "person", "play", "provide", "related", "resources", "scientific", "sea", "see", "space", "studies", "terms", "tesla", "usually", "ago", "along", "behavior", "come", "conditions", "discovered", "financial", "green", "growing", "immune", "management", "market", "mass", "nature", "nearly", "off", "particular", "provides", "set", "single", "themselves", "times", "under", "understanding", "ve", "ways", "actually", "among", "area", "black", "book", "build", "compared", "considered", "control", "decisions", "depression", "despite", "developing", "don", "free", "given", "group", "higher", "improve", "increasing", "individual", "issues", "kind", "live", "main", "makes", "materials", "media", "model", "never", "old", "once", "outside", "possible", "present", "processes", "production", "products", "put", "revolution", "sense", "show", "structure", "subject", "teachers", "trade", "types", "u", "until", "useful", "whole", "activities", "ancient", "art", "bacteria", "becoming", "best", "birds", "blood", "carbon", "color", "cultural", "design", "diseases", "edison", "either", "electric", "european", "greater", "groups", "grow", "heart", "influence", "internet", "jobs", "lead", "levels", "medical", "microbes", "needs", "objects", "physical", "published", "rate", "reason", "regions", "rest", "schools", "seen", "several", "shown", "side", "similar", "situation", "temperatures", "unique", "variety", "want", "affect", "animal", "became", "benefits", "british", "built", "cars", "caused", "chemical", "community", "develop", "doing", "due", "events", "factors", "field", "finding", "forms", "function", "genetic", "giving", "goods", "graduate", "interest", "job", "largest", "last", "local", "marketing", "meaning", "mental", "normal", "north", "pay", "pollution", "questions", "quickly", "read", "relatively", "remained", "rock", "she", "significantly", "skills", "something", "sounds", "sources", "stars", "step", "taking", "third", "various", "vast", "works", "action", "air", "always", "america", "asked", "associated", "atmosphere", "australian", "average", "banks", "benefit", "billion", "blue", "building", "businesses", "cannot", "case", "cognitive", "company", "computer", "cost", "does", "done", "economy", "effect", "exercise", "fact", "four", "functions", "games", "gas", "hand", "having", "her", "him", "home", "increases", "instead", "land", "later", "law", "limited", "lives", "loss", "mind", "months", "national", "next", "non", "oxygen", "policy", "positive", "quality", "range", "rates", "real", "remains", "response", "signals", "sleep", "source", "stage", "status", "taken", "thousands", "traditional", "true", "turn", "tv", "unions", "white", "words", "workers", "act", "allow", "allows", "already", "analysis", "available", "basic", "beginning", "bodies", "bring", "buy", "cancer", "clear", "complex", "death", "designed", "diet", "drug", "effective", "environmental", "especially", "extent", "fight", "findings", "fundamental", "gives", "going", "gone", "hard", "highly", "i", "importance", "industrial", "itself", "japan", "left", "legal", "longer", "man", "mean", "middle", "morning", "move", "needed", "night", "overall", "pain", "percent", "potential", "reading", "reduce", "relationship", "right", "roots", "seem", "self", "significant", "sites", "size", "spent", "staff", "start", "strategies", "stress", "success", "temperature", "tend", "term", "took", "travel", "union", "universities", "video", "wealth", "week", "went", "young", "adults", "affected", "aid", "approach", "artificial", "basis", "began", "believe", "central", "challenging", "characteristics", "class", "coast", "cold", "deaths", "difference", "directly", "drink", "easy", "efficiency", "employers", "enough", "environments", "everyone", "evolution", "evolved", "experts", "force", "french", "furniture", "general", "give", "helps", "includes", "increase", "increasingly", "indeed", "leading", "linked", "loans", "located", "matter", "miles", "millions", "office", "online", "open", "parliament", "picture", "places", "poor", "populations", "practice", "president", "pressure", "product", "programs", "projects", "question", "reality", "reasons", "records", "report", "reserve", "responses", "roman", "run", "samples", "scale", "shape", "simply", "soon", "speaker", "statistics", "strong", "struggle", "sustainable", "technologies", "thesis", "thing", "thousand", "uses", "value", "wildlife", "yellow", "account", "accurate", "address", "advanced", "advantage", "again", "against", "anything", "avoid", "behind", "beyond", "big", "car", "care", "chronic", "cities", "college", "companies", "concept", "conservation", "contribute", "credit", "damage", "debt", "decline", "depend", "diverse", "diversity", "effort", "electricity", "electronic", "employees", "end", "ensure", "exactly", "examination", "experienced", "exposed", "exposure", "external", "families", "following", "fresh", "funds", "gap", "globalization", "ground", "hearing", "himself", "hold", "huge", "hundred", "individuals", "infections", "informative", "introverts", "journal", "literature", "lose", "lower", "majority", "male", "mars", "measure", "memory", "methods", "military", "mother", "ocean", "orbit", "pandemic", "parts", "passed", "planning", "politics", "popular", "predict", "price", "program", "protected", "protein", "purpose", "region", "reports", "required", "residents", "revealed", "reveals", "rich", "rights", "room", "scenario", "sector", "serve", "sharks", "shell", "smoking", "solution", "solutions", "sometimes", "speech", "started", "starting", "subjects", "sufficient", "suggests", "sun", "takes", "television", "tests", "tourists", "trees", "try", "trying", "violence", "word", "write", "ability", "achieve", "active", "add", "alcohol", "allowed", "alternative", "anxiety", "army", "audience", "bank", "biggest", "biological", "books", "calls", "carefully", "cases", "cell", "centuries", "changing", "civil", "cloud", "clouds", "coal", "colleagues", "commercial", "communication", "contain", "content", "coronavirus", "cosmic", "couple", "courses", "created", "creatures", "customers", "d", "decision", "deep", "dependent", "described", "devices", "doesn", "domestic", "dream", "economies", "efforts", "established", "executive", "exist", "experiments", "explain", "extremely", "extroverts", "fewer", "fire", "flu", "fluid", "foreign", "friends", "generally", "generate", "goals", "governments", "greenhouse", "gut", "hope", "hot", "idea", "implications", "impossible", "improved", "improvement", "independent", "infection", "intelligence", "introduced", "involved", "keeping", "labor", "late", "layer", "leads", "learn", "lincoln", "location", "mentally", "metals", "mining", "moon", "motor", "movement", "music", "nations", "native", "near", "necessary", "negative", "network", "noise", "obesity", "offer", "offers", "organelles", "organisms", "organizations", "parents", "park", "patients", "playing", "possess", "prevent", "probably", "processing", "produced", "productivity", "progress", "providing", "quite", "recently", "record", "reducing", "regular", "rely", "require", "rice", "safe", "sciences", "search", "seemed", "service", "smell", "special", "spend", "spread", "standard", "star", "stop", "style", "supply", "surface", "survive", "target", "task", "tell", "ten", "testing", "theory", "thus", "tools", "towards", "trump", "twenty", "type", "ultimately", "understood", "universe", "upon", "users", "vehicles", "vessels", "view", "volcanic", "wars", "weather", "weeks", "wide", "widespread", "worked", "worldwide", "abilities", "academic", "access", "actions", "agriculture", "aim", "analyses", "antarctica", "appears", "application", "applied", "argument", "author", "babies", "believed", "below", "bonds", "buildings", "burning", "came", "cards", "ceremony", "chinese", "choice", "choices", "classes", "colonies", "communicate", "competitive", "concerned", "consider", "constitution", "consumers", "continues", "crisis", "cycle", "dark", "decade", "decades", "department", "depends", "determine", "determined", "digital", "direct", "disaster", "distribution", "easily", "eggs", "electrical", "emissions", "employer", "enables", "endangered", "entire", "estimates", "expected", "extinction", "failure", "famous", "fast", "father", "figures", "finds", "fixed", "foam", "ford", "formation", "frozen", "full", "gases", "girls", "greatly", "greek", "habitat", "half", "head", "healthcare", "healthy", "heavy", "hemisphere", "host", "hour", "hunted", "ice", "identity", "illness", "indian", "injury", "inside", "interactions", "internal", "involves", "involving", "issue", "items", "leaders", "learned", "leaves", "lecture", "lights", "listening", "look", "looking", "manufacturers", "mba", "medicine", "meet", "members", "membrane", "metal", "minute", "miss", "mobile", "models", "month", "motion", "mountain", "moved", "multi", "nasa", "news", "notes", "object", "offered", "older", "ones", "organization", "origins", "outcomes", "pace", "participants", "pattern", "peasant", "per", "performance", "perhaps", "personal", "phenomenon", "plan", "played", "ponds", "precious", "prefer", "presence", "prices", "private", "produces", "protection", "provided", "providers", "publication", "purposes", "quarter", "radioactive", "rarely", "reach", "realized", "really", "recognized", "reduction", "regulations", "remain", "reported", "requirements", "responsible", "reward", "risks", "rivals", "river", "sales", "satellite", "section", "seems", "sell", "serious", "setting", "severe", "sharing", "shows", "slowly", "snow", "soft", "soils", "soldiers", "statistical", "stressed", "studying", "subtle", "suggest", "sunshine", "sure", "talking", "tax", "tea", "temporary", "test", "thick", "throughout", "tissue", "tissues", "tobacco", "top", "toward", "training", "typically", "uk", "urban", "usage", "user", "vaccine", "walking", "western", "whales", "whose", "widely", "window", "writer", "writing", "written", "abstract", "accident", "achievement", "administration", "african", "ages", "allocated", "alone", "alter", "amounts", "amphibians", "annually", "apart", "appearance", "arms", "artists", "asia", "ask", "assessment", "assets", "assistance", "association", "athens", "atlantic", "attention", "australians", "automated", "availability", "aware", "bats", "becomes", "behave", "behaviors", "beliefs", "billions", "biodiversity", "birth", "blame", "boats", "brains", "brand", "breeding", "brought", "c", "cable", "canada", "canyon", "capital", "capture", "carried", "categories", "caterpillars", "cause", "cellular", "center", "centralized", "certainly", "challenge", "chance", "channels", "characters", "chemicals", "city", "claims", "classroom", "clean", "close", "code", "collecting", "combined", "commerce", "commercials", "competition", "conflict", "connected", "connections", "consume", "consumer", "continue", "conversation", "corporate", "costs", "criteria", "critical", "crops", "crucial", "crust", "daily", "dangerous", "deal", "debate", "definition", "degree", "degrees", "demanding", "demonstrated", "deposit", "describe", "deserts", "destroy", "details", "device", "differ", "discover", "discoveries", "disorder", "display", "divided", "dna", "drinking", "drinks", "drive", "e", "ear", "earlier", "easier", "east", "eastern", "educational", "effectively", "efficient", "efficiently", "else", "emerged", "emergence", "emotional", "employed", "enable", "england", "era", "eruptions", "estimate", "everyday", "everything", "examples", "exchange", "expectations", "expensive", "express", "extraordinary", "eye", "eyes", "falls", "farming", "faster", "federal", "feed", "feet", "final", "firm", "fish", "fit", "flies", "flowers", "focusing", "follow", "forest", "forests", "formed", "fossil", "fourth", "fuel", "functional", "funding", "gain", "galaxies", "gardens", "generation", "generative", "genes", "gold", "got", "graduates", "hair", "hall", "happen", "happened", "happy", "heat", "held", "here", "highest", "hospitals", "house", "housing", "humanities", "hydrogen", "imagine", "impacts", "infants", "insights", "institution", "interested", "interesting", "invaders", "investment", "involve", "island", "japanese", "kids", "kinds", "languages", "larger", "layers", "leaving", "length", "letters", "lifestyle", "limits", "lines", "linguistic", "links", "love", "madagascar", "mammals", "manage", "managers", "mark", "marked", "marx", "measures", "member", "method", "mice", "migration", "minerals", "ministers", "moderate", "moisture", "moods", "moreover", "motivation", "multiple", "muscle", "museum", "my", "nation", "nearby", "necessarily", "nests", "networks", "neural", "nor", "norms", "nothing", "numerous", "obvious", "officials", "ongoing", "opportunity", "option", "ordinary", "organ", "origin", "otherwise", "ourselves", "overdose", "overseas", "owners", "ozone", "papers", "patterns", "peer", "perform", "periods", "personality", "persons", "picked", "pictures", "plato", "players", "plenty", "policies", "position", "powerful", "pre", "precipitation", "prevents", "primary", "profit", "project", "prone", "psychology", "purely", "radical", "raised", "rapid", "rapidly", "raw", "recognize", "reduced", "refers", "reflected", "regarded", "remote", "replacing", "reprint", "requires", "resistance", "resistant", "resource", "responsibility", "retirement", "returned", "rise", "road", "rose", "roughly", "satellites", "save", "saving", "scholars", "screen", "security", "seek", "sentence", "sentences", "separate", "share", "shopping", "short", "similarly", "site", "skin", "slight", "slightly", "smaller", "someone", "sort", "sound", "south", "sovereignty", "speak", "spite", "stamp", "stamps", "stay", "stayed", "stocks", "story", "strategy", "strength", "strongly", "substance", "successful", "successfully", "sugar", "summer", "surprisingly", "swans", "switch", "symptoms", "talk", "tasks", "taste", "tau", "technique", "texts", "theories", "thinks", "thirty", "thomas", "though", "tiny", "tourist", "town", "transactions", "tremendous", "trends", "tutor", "unchanged", "unless", "unlikely", "vary", "viral", "vulnerable", "warm", "waters", "waves", "weight", "win", "writers", "x", "york", "younger", "abortions", "accessible", "achievements", "acid", "acknowledging", "actual", "adapt", "addition", "adequate", "admission", "adult", "advance", "afford", "agreed", "agreement", "agricultural", "alzheimer", "amusement", "annual", "anti", "antibiotic", "anyone", "anywhere", "apparently", "appear", "appeared", "applications", "approaches", "appropriate", "arising", "arteries", "asian", "asking", "aspects", "assess", "assistants", "astronomers", "atmospheric", "attempt", "attended", "attract", "authoritative", "authors", "auto", "automatically", "awareness", "away", "background", "bad", "battery", "battle", "belief", "beneath", "beneficial", "bill", "biodegradable", "biologist", "biologists", "bond", "botswana", "bound", "boys", "break", "breakfast", "brewing", "bright", "britain", "broad", "brown", "budget", "buying", "calculators", "campus", "candidate", "capacity", "captured", "career", "catch", "cats", "causing", "celled", "celsius", "challenges", "changed", "character", "childhood", "china", "circumcision", "circumstances", "closest", "collapse", "collect", "collections", "colors", "combat", "comfortable", "coming", "communist", "communities", "compact", "complete", "composed", "comprehensive", "computers", "concentrations", "concerns", "conclusion", "condensation", "condition", "conducted", "conferences", "connect", "connection", "connectivity", "consequently", "constellation", "constellations", "consultation", "consumption", "continent", "continuing", "contributions", "controlled", "controls", "cool", "coordination", "cope", "copper", "copyright", "correct", "council", "covid", "creating", "creation", "creative", "creature", "criminal", "critically", "cross", "cry", "cultivating", "cultures", "curators", "currently", "customary", "damaged", "danger", "de", "dead", "decrease", "deficiency", "define", "defined", "deliver", "depending", "descriptive", "designs", "detailed", "diabetes", "dialogue", "die", "dinner", "discuss", "discussed", "distance", "distant", "disturbances", "doctor", "dolphins", "domestication", "domicile", "donald", "donors", "door", "doubled", "dramatic", "drawing", "driven", "driver", "drivers", "dry", "dutch", "eagle", "earthquake", "earthquakes", "eat", "eating", "economics", "ecosystems", "elliptical", "emerald", "encounter", "encourage", "engaging", "engine", "engineers", "engraving", "enhances", "ensuring", "establishment", "eventually", "everywhere", "examined", "excellent", "exotic", "expect", "experimental", "explore", "exploring", "extreme", "face", "facilities", "facing", "faculty", "fake", "fall", "fame", "fastest", "fault", "feeling", "fields", "fifth", "fifty", "fighting", "filled", "film", "finally", "firms", "flags", "flexible", "flow", "focus", "football", "foundation", "fourfold", "fraction", "fractional", "fragmented", "friend", "frog", "fuels", "funded", "galaxy", "generator", "germany", "getting", "goes", "golden", "grand", "greatest", "grounds", "happens", "harder", "harvard", "hazards", "heavily", "hectares", "helped", "helping", "hemispheres", "hence", "herbivores", "hide", "hihi", "historian", "historical", "historically", "hole", "homework", "household", "houses", "hunting", "hybrid", "identify", "ignore", "illegal", "illnesses", "images", "immediately", "implantation", "impression", "impressive", "income", "inevitable", "influenced", "influences", "influencing", "inform", "initial", "initially", "innovations", "innovative", "instance", "institute", "institutions", "instruction", "intangible", "intended", "intensive", "interpretation", "interventions", "introvert", "invest", "investigators", "involvement", "iron", "isn", "james", "join", "journey", "kept", "kingdom", "knowing", "knows", "landlords", "largely", "latest", "latin", "launched", "leave", "leg", "lego", "lend", "lessons", "let", "library", "lies", "lifetime", "liquid", "list", "literary", "lived", "ll", "london", "looks", "losing", "losses", "luxury", "machine", "machines", "magnetars", "magnetic", "maintain", "map", "marriage", "married", "massive", "master", "mastery", "match", "maximum", "meant", "medium", "meeting", "mexico", "mile", "minds", "mineral", "minimal", "mission", "molecules", "monarchy", "monitoring", "mortality", "mountains", "moving", "name", "named", "navy", "necessity", "neurons", "neuroscience", "neutral", "neutron", "nickel", "nine", "normally", "noticed", "nurse", "nursery", "nutrient", "nutrients", "observations", "occupation", "offshore", "onset", "operate", "opioid", "ore", "organic", "original", "outcome", "paid", "panama", "participation", "partner", "passenger", "passion", "passionate", "patient", "percentage", "permafrost", "perspective", "planets", "plays", "plentiful", "police", "politicians", "polymer", "portrait", "possibilities", "possibility", "post", "potentially", "predators", "prepare", "prepared", "previous", "previously", "producing", "productive", "programming", "promised", "promoting", "properties", "property", "protect", "proteins", "psychologists", "pupils", "pursue", "quotes", "raccoons", "racial", "radio", "rain", "rainfall", "rains", "ray", "rays", "reached", "reader", "realize", "receive", "received", "recorded", "reduces", "reform", "regime", "relative", "relatives", "religious", "replace", "represented", "reproduce", "reputation", "requiring", "resulted", "resulting", "return", "reveal", "reviews", "rising", "ritual", "robots", "rooms", "royal", "runoff", "rural", "safety", "saw", "saying", "secret", "seeing", "seeking", "sees", "seismic", "sensitive", "sensory", "sequences", "series", "served", "session", "sexually", "shakespeare", "sides", "sign", "signal", "significance", "signs", "sized", "sky", "slow", "smoke", "societies", "solid", "somewhat", "son", "speaking", "spectacularly", "speed", "spending", "sphere", "spoken", "station", "stations", "steam", "stole", "store", "stories", "stranded", "streams", "street", "strengths", "stroke", "succeed", "suffer", "suicide", "suitable", "summary", "supplies", "surprising", "surrounding", "survey", "tastes", "taught", "teams", "techniques", "technological", "teeth", "telescope", "tested", "textbooks", "thanks", "thereby", "thickness", "thinking", "threatened", "tie", "tomorrow", "topic", "tour", "tourism", "toxic", "tradition", "trait", "transformed", "transmitted", "transport", "trap", "traumatic", "treatment", "treatments", "tried", "trillion", "trouble", "truth", "tsunamis", "tumor", "tuned", "turned", "turning", "turns", "turtles", "twitter", "typical", "uncovered", "undergo", "unemployment", "unhappy", "unlike", "unnecessary", "unsure", "unusual", "updated", "vaccines", "valentine", "valuable", "values", "variables", "videos", "virtual", "virtually", "viruses", "visible", "vision", "visitors", "vital", "voluntary", "volunteers", "warmer", "warming", "waste", "watch", "webb", "welfare", "west", "wild", "wind", "windows", "woman", "wonder", "wood", "worse", "wrote", "yeast", "yourself", "zebrafish", "aboriginal", "above", "absence", "abstracts", "abu", "abundance", "academics", "accepted", "accessibility", "accessories", "accord", "accordance", "accounting", "accurately", "acknowledge", "acquired", "acting", "activated", "actively", "actor", "added", "adding", "additional", "addressed", "adequately", "adjust", "administered", "admissions", "adolescence", "adopt", "adulthood", "advances", "advantages", "advertising", "advice", "aesthetics", "affairs", "affects", "africa", "agency", "agenda", "aging", "ahead", "ai", "akimbo", "alcoholic", "alert", "alexander", "alligators", "allowing", "almonds", "aloud", "alternating", "amazement", "amongst", "amphibian", "analytics", "anniversaries", "anonymous", "answer", "answers", "antarctic", "apnea", "apparatus", "apparent", "appeal", "appealing", "appetite", "apply", "approval", "aquaculture", "aquariums", "aquatic", "arabia", "arch", "arguably", "arises", "aristocratic", "arm", "array", "arrive", "arrived", "artistic", "arts", "artwork", "aspect", "assault", "assembly", "assessors", "assist", "assistant", "assistive", "assume", "assumptions", "athletes", "attack", "attend", "attitudes", "attorney", "attracting", "auckland", "autonomous", "auxiliaries", "avalanche", "backgrounds", "baker", "bald", "banned", "bar", "barley", "barriers", "bat", "batteries", "beauty", "bed", "begin", "begun", "behavioral", "beings", "believing", "belt", "bergson", "berlin", "bermuda", "besides", "bet", "beverage", "bharati", "bicycle", "bigger", "bills", "bird", "bit", "blades", "blend", "blink", "blocking", "board", "bone", "bones", "bookkeepers", "boost", "boosting", "border", "born", "botanic", "bother", "bottom", "boundaries", "box", "boy", "breaking", "brings", "broader", "brow", "bulb", "bulk", "bullying", "buried", "burnt", "bursae", "burst", "bush", "caffeine", "calcium", "california", "calling", "campaign", "campaigning", "cancers", "capabilities", "capable", "capitalism", "captivity", "cargo", "carved", "cash", "cat", "catches", "cathode", "caught", "causes", "cd", "celebrities", "celestial", "centers", "centre", "cervical", "chain", "chaplin", "characterized", "charlie", "cheaply", "childcare", "choose", "chronology", "citizens", "civic", "claimed", "classic", "clearly", "clementson", "click", "climates", "clinton", "closely", "co", "coastal", "coffee", "colder", "collected", "collectible", "collective", "collectors", "colloquialisms", "colorado", "combustion", "commemorative", "committee", "comparable", "comparative", "compare", "comparison", "compartments", "competence", "competitiveness", "completed", "completely", "completing", "complicated", "component", "components", "composition", "compounds", "comprehensively", "conceive", "concentration", "concepts", "concern", "conductive", "conductor", "conference", "confidence", "confirm", "confirmed", "conform", "confusion", "congress", "consequences", "conservationists", "conserve", "considerable", "consideration", "considerations", "consists", "consoles", "consolidate", "constant", "constantly", "constitute", "constitutional", "consumed", "contains", "contemporary", "context", "contrast", "contributed", "controlling", "conventional", "conversations", "convert", "converted", "convinced", "cook", "cooling", "core", "corner", "corporations", "cotton", "count", "counter", "couples", "craft", "creates", "criticism", "criticized", "culprit", "curve", "customer", "customs", "cuts", "cutting", "damaging", "darts", "darwin", "databases", "dates", "david", "daylight", "dbs", "dc", "debates", "debris", "decide", "declines", "decreasing", "dedicating", "deeper", "deficiencies", "defining", "definitions", "definitive", "deliberate", "deliberately", "delivered", "delivery", "democracy", "democrats", "demographic", "denied", "dense", "density", "depletion", "deposits", "describes", "designers", "designing", "despair", "desperate", "destination", "detail", "detection", "determines", "developments", "devoted", "dhabi", "diabetics", "didn", "died", "differences", "difficulties", "difficulty", "digest", "digestive", "dike", "dioxide", "director", "disappeared", "discipline", "discovery", "discussion", "dish", "disorders", "displayed", "dispute", "disruptive", "distinct", "distinguished", "distributing", "diverted", "divides", "dividing", "divisions", "divorce", "dodging", "dominated", "double", "dozens", "dr", "dramatically", "dreams", "driving", "dropped", "drought", "drying", "dubbed", "dull", "dyed", "eagles", "earliest", "ecosystem", "edge", "edisons", "edtech", "educators", "eels", "egypt", "eight", "election", "electronics", "elsewhere", "emerge", "emergency", "emerges", "emission", "emotions", "empirical", "employ", "employment", "enabling", "encompass", "encouraging", "ending", "engage", "engaged", "enjoy", "enjoyed", "ensures", "enthusiasm", "entirely", "entities", "episodes", "equally", "equipment", "equity", "equivalent", "erosion", "escape", "essentially", "establish", "estimated", "etc", "ethics", "eukaryotic", "evaluate", "event", "evoke", "evolutionary", "exam", "exams", "excursions", "exhibition", "exhilarating", "existence", "expectancy", "expenditures", "experiences", "expertise", "explained", "explains", "explanations", "exploration", "explorers", "explores", "explosion", "exponential", "exporter", "exporting", "exports", "exposing", "expressing", "extension", "extinctions", "extremes", "extrovert", "eyeballs", "faced", "factor", "factory", "failed", "falling", "familiar", "famously", "fantasy", "farmers", "fascinating", "fat", "fatigue", "favorite", "feared", "features", "featuring", "feeding", "fertility", "fiberglass", "figure", "fill", "filtering", "finance", "fires", "firstly", "flaring", "flavor", "flood", "floods", "flooring", "flowing", "fluctuate", "flying", "focused", "followed", "forces", "formal", "fortunes", "forty", "founder", "france", "fraternal", "fraud", "freely", "freshwater", "friendly", "frogs", "front", "fruits", "fully", "fun", "fund", "gallup", "gators", "genetically", "genuine", "geographic", "geologic", "geological", "gets", "goal", "gorillas", "grab", "gradual", "grain", "gravity", "greeks", "greeted", "grew", "grid", "grown", "grows", "guarantee", "guarantees", "guest", "guns", "habit", "habitability", "habits", "hail", "halls", "hamburg", "handmade", "hands", "happiness", "hatch", "hatching", "hate", "havens", "hazardous", "hearts", "heating", "heroin", "heterogeneous", "highlight", "hire", "historians", "hiv", "holding", "holes", "holiday", "hong", "honoring", "hospitable", "hottest", "hourly", "households", "hubble", "humanity", "humor", "hundreds", "iconic", "ideas", "identified", "ill", "illustrates", "imaginary", "imaginative", "immediate", "immunity", "imperial", "imports", "impressed", "improvements", "impulse", "inanimate", "incident", "included", "indefinite", "indicate", "indicates", "indigenous", "indirect", "industries", "inflammatory", "infrastructure", "infrequent", "inhabitants", "inherent", "inner", "innovation", "insect", "insects", "insight", "inspired", "instances", "institutional", "instructional", "insurance", "integrating", "integration", "intellectual", "intelligent", "intensely", "interaction", "interactive", "interests", "interfere", "interferons", "intermediaries", "interviews", "intricate", "introduces", "intuition", "invasive", "inventory", "investigated", "ion", "irrigation", "islands", "isolated", "isotopes", "issued", "istanbul", "iteration", "jacobson", "jeep", "joined", "karl", "keyboard", "killer", "killing", "kong", "laboratory", "lack", "landmark", "lands", "landscape", "landslide", "landslides", "launch", "leak", "learners", "legionaries", "legislation", "legs", "lemurs", "lengths", "lenient", "lesser", "limit", "line", "linen", "linger", "lining", "listed", "lit", "literally", "lithium", "livelihoods", "liver", "liverpool", "locals", "locate", "lockdown", "logging", "looked", "loose", "lost", "lots", "loud", "lowering", "lowest", "lowland", "lullabies", "lungs", "machinery", "macroscopic", "magma", "mainly", "maintenance", "malaria", "mammal", "managing", "mandarin", "mantle", "manufacturing", "marijuana", "marks", "martian", "math", "mathematics", "me", "meaningful", "meanings", "measurements", "meat", "mechanism", "mechanisms", "medications", "mediterranean", "meetings", "merely", "merger", "metabolic", "metabolism", "methodologies", "mexican", "microbial", "microbiome", "microorganisms", "microscopic", "migrate", "milligrams", "mimic", "missing", "mix", "mixing", "modify", "molecular", "molecule", "monarch", "monday", "monitor", "monkeys", "monoxide", "mood", "mostly", "motivated", "motors", "mount", "movements", "muscles", "mutant", "mutual", "mystery", "mythological", "myths", "naked", "nasca", "nectar", "neighbors", "neither", "nell", "nerve", "networking", "neuroscientists", "neutrophils", "newer", "newly", "ngc", "nineteenth", "nobility", "northern", "novel", "novelist", "nucleus", "numbers", "nurses", "oberto", "observe", "observed", "observing", "obsessed", "obtain", "occur", "occurred", "occurs", "oceanic", "officers", "offices", "oldest", "opening", "operating", "operation", "operations", "optimistic", "oral", "organized", "organizing", "organs", "orientalists", "oriented", "originally", "originated", "ornithine", "outdoor", "outline", "outlines", "overlap", "overpowering", "overused", "owner", "pacific", "packaging", "pads", "page", "pages", "painted", "painting", "pair", "pale", "paracas", "parent", "parkinson", "parks", "participating", "particles", "particulate", "party", "patented", "pathogen", "pathways", "pave", "peasants", "peninsula", "perceive", "performed", "performing", "permission", "perseverance", "pet", "petroleum", "pharmaceutical", "philosopher", "philosophy", "phones", "photograph", "photographer", "photographic", "photosynthesis", "placebo", "placed", "plans", "planted", "platinum", "playwright", "plots", "pluto", "points", "poisoning", "poisonous", "poll", "pond", "poorer", "popularity", "porous", "positively", "practical", "practiced", "practices", "prairies", "preceding", "precise", "precisely", "pregnant", "prehistory", "preparing", "preserve", "preserved", "presidents", "press", "presumably", "prey", "pride", "primarily", "primates", "prime", "primitive", "prior", "professional", "professionals", "professors", "prolonged", "promising", "promote", "pronunciation", "propagation", "proper", "proportion", "proposed", "proposes", "prosperity", "prosthetics", "protecting", "protections", "prove", "provision", "psychologist", "puberty", "pulled", "purchase", "purchased", "purchases", "purification", "puritans", "purple", "qualified", "qualitative", "quantitative", "quest", "questionnaires", "quick", "rabbits", "race", "rainforests", "raise", "ramp", "rationed", "reaching", "react", "receives", "reception", "receptors", "recharge", "recommended", "recovery", "recurring", "recycling", "reflect", "reforms", "refreshing", "refuse", "regarding", "regularly", "regulates", "reindeer", "reinforced", "rejuvenation", "relationships", "released", "relentless", "relevance", "relevant", "reliable", "relief", "reliefs", "remaining", "remarkably", "remembered", "removed", "rent", "repair", "repeated", "replaced", "replied", "reportedly", "representative", "representing", "republican", "reserves", "residence", "respect", "respond", "responders", "restaurant", "restricted", "restrictions", "retail", "revenues", "review", "revised", "rewiring", "ride", "ripe", "risen", "riser", "rivers", "rna", "roads", "robot", "rocky", "roll", "romantic", "root", "rotten", "round", "routine", "rover", "rule", "rules", "russia", "russians", "safer", "sake", "san", "sandwich", "satisfaction", "scandal", "sceptical", "schemes", "scholarships", "scientist", "scope", "scripture", "searched", "season", "seawater", "seaweeds", "secrets", "sections", "sectors", "sediment", "seeding", "selected", "selection", "senate", "senior", "sensibilities", "seriously", "settlers", "seven", "sex", "sexual", "shallow", "shaping", "shed", "sheets", "shelter", "shift", "ships", "shoestring", "shootings", "shoppers", "shoreline", "showed", "shuttle", "sibling", "sight", "signaling", "silent", "silver", "simple", "simulation", "sister", "sitting", "situations", "six", "skeletons", "skill", "skilled", "skull", "slang", "slower", "slowest", "slows", "smart", "smellicopter", "smells", "soaring", "sociable", "socialist", "socio", "sockets", "socrates", "song", "songs", "sons", "sophisticated", "sought", "southern", "southerners", "specialize", "specialized", "specifications", "specimen", "speeds", "spencer", "sperm", "spirit", "split", "spoiled", "spontaneously", "sporting", "spot", "square", "stability", "stagnant", "stake", "standards", "statistically", "stems", "sticky", "stimulate", "stimulation", "stolen", "stone", "stores", "straightforward", "strain", "strange", "strategic", "stratospheric", "streets", "strengthens", "stressful", "strictly", "strip", "structures", "struggling", "studied", "sub", "substantial", "succeeded", "succeeding", "succulent", "suddenly", "suffering", "suggested", "sulfide", "super", "supernova", "supernovae", "supplying", "supports", "surgery", "surprise", "suspensions", "sustainability", "sustained", "swan", "sweet", "switching", "sydney", "symbols", "syndrome", "systematic", "tactics", "takagi", "talented", "tambora", "targeting", "tasmania", "taxes", "teach", "teacher", "teaching", "technically", "teen", "telecommunication", "teller", "tempers", "tends", "tenuous", "territory", "texas", "textbook", "thank", "theater", "theme", "theoretical", "therapies", "thinkers", "thirds", "thoroughly", "thoughts", "threshold", "tidal", "tied", "timing", "title", "tone", "tons", "tool", "topics", "tortoise", "total", "totally", "towers", "traits", "transition", "transmission", "trappings", "travelers", "traveling", "travelled", "travels", "tree", "trend", "trial", "trickle", "triumph", "truck", "truly", "tts", "tubes", "tumors", "tundra", "turbine", "tweeted", "twelve", "twice", "uncovering", "undergraduate", "undergraduates", "understandings", "unemployed", "unfair", "unfortunately", "uniforms", "unit", "unknown", "unpredictable", "untreated", "unusually", "updating", "upholstered", "uptake", "uranus", "usa", "vapor", "variable", "variants", "variations", "varied", "varies", "varying", "vegetation", "vehicle", "via", "victorian", "viewers", "viewing", "village", "villages", "violation", "virginia", "virus", "visit", "visual", "vitamin", "vitro", "vocabulary", "volumes", "voters", "walk", "wanted", "wastewater", "watching", "wave", "weakness", "weaknesses", "wealthy", "website", "websites", "weekly", "welcome", "wetlands", "wharves", "whatever", "wheel", "whereas", "wildcats", "winning", "wolves", "wonderful", "workplace", "worried", "worst", "worth", "writes", "yes", "yield", "zealand", "zone", "zoological", "zwicky", "abandoned", "abiotic", "abnormal", "abnormally", "abortion", "abound", "abrasive", "abroad", "absences", "absent", "absolute", "absolutely", "absorb", "abusers", "academically", "academy", "accelerating", "accept", "acceptance", "accepts", "accessing", "accidents", "acclimatized", "accomplish", "accomplished", "accumulate", "accumulated", "accusation", "accusations", "ace", "acerbic", "achieved", "achieving", "acidic", "acne", "acquainted", "acquire", "acquisition", "acrobatics", "acronyms", "activating", "actors", "acute", "ad", "adams", "adaptable", "adapting", "adaption", "adaptive", "addiction", "addictive", "additionally", "adelaide", "adequacy", "adhesion", "adhesive", "adjacent", "adjectives", "adjustment", "administrator", "admit", "admits", "admitted", "adopts", "ads", "adulation", "advancements", "adventures", "adverbs", "adverse", "advertised", "advertisements", "advised", "advocates", "aerodynamics", "affecting", "affection", "afflicts", "aged", "agent", "agents", "aggressive", "agrarian", "agrees", "aids", "aimless", "aims", "airboat", "airline", "airlines", "airplanes", "alasdair", "albert", "algae", "alien", "alike", "alkalization", "alleged", "allergens", "allergies", "alliance", "alligator", "allotted", "almond", "alongside", "alphabet", "altered", "alternately", "alternatively", "alternatives", "alters", "amateurs", "amazed", "amazon", "ambassador", "amber", "ambiguities", "ambitious", "amenable", "amendment", "amendments", "amid", "amino", "amoeba", "ampicillin", "amplify", "amputees", "amusing", "analog", "analysed", "analysts", "analytic", "analyzed", "ancestor", "android", "andry", "angles", "animation", "anning", "annotated", "annotation", "anomalous", "answered", "antenna", "anticipated", "antiviral", "antonie", "anxious", "apartment", "apartments", "apes", "apollo", "appendix", "appetizing", "applause", "appliances", "applicant", "applying", "appointed", "appreciate", "appreciation", "approached", "appropriately", "approves", "approximately", "apps", "aquafarming", "arable", "arcane", "archaeological", "archeology", "architecture", "arctic", "arduous", "argentina", "argue", "argues", "arguments", "arise", "aristocrats", "armies", "armor", "aromatic", "arrange", "arresting", "arriving", "article", "articles", "artist", "ascents", "aspire", "assessments", "assignments", "associates", "assuming", "asteroid", "asteroids", "asthma", "astray", "astronaut", "astronomical", "astrophysical", "astrophysicist", "astrophysics", "athletic", "atlantis", "atms", "atom", "attacks", "attains", "attempted", "attempting", "attempts", "attendance", "attendant", "attending", "attracted", "attracts", "attribute", "attributed", "audiences", "audio", "auditory", "augustus", "auspices", "authenticated", "automobiles", "autonomy", "avalanches", "avenue", "avi", "award", "awards", "b", "baby", "backbone", "backwash", "bacterial", "bag", "bagging", "baidu", "bake", "baked", "balance", "ballet", "balmy", "balsa", "ban", "banana", "band", "bang", "bangs", "bankers", "bankrupt", "bargain", "bargaining", "barks", "barrier", "base", "bases", "basin", "bay", "bcis", "beach", "bear", "beating", "beds", "beer", "begins", "behaves", "beijing", "bell", "bellies", "bellows", "bellwethers", "belly", "belonged", "benchmarks", "bending", "bent", "beryl", "bias", "biased", "bible", "bid", "binds", "bio", "biocrust", "biocrusts", "bioengineered", "biography", "biologically", "biology", "biome", "biopedturbation", "biotechnologist", "biotic", "bipod", "bits", "bizarrely", "blade", "blake", "blast", "blatant", "blaze", "bleeding", "blindness", "blinking", "blocks", "bloodied", "bloom", "bloomberg", "bluish", "blunt", "boardrooms", "bogus", "bold", "bolstered", "bombarded", "bombers", "bombs", "bonkers", "bonus", "boomer", "booms", "boon", "boots", "bordering", "borders", "borrowed", "borrowing", "boss", "boston", "bots", "boundary", "bounded", "boundless", "bowel", "brady", "braille", "branch", "brands", "brazil", "breach", "breakdown", "breakthroughs", "breast", "breastbone", "breathe", "breathed", "breathing", "breed", "brewers", "brexit", "brick", "bridge", "bridges", "briefly", "bringing", "broadcasts", "brother", "brunch", "brunt", "brutal", "brutish", "bubbles", "bud", "buddhism", "budgets", "bulgaria", "bunch", "bundle", "bundles", "bureau", "burial", "burma", "burn", "bushfires", "busting", "bustling", "busy", "button", "butyrate", "buzz", "cabinet", "caen", "cafes", "calculates", "calculator", "call", "camel", "camera", "cameras", "camouflage", "campaigned", "campuses", "canadian", "candidates", "cannabis", "cannae", "canopy", "cap", "capillary", "capitalizes", "capitol", "capturing", "caramelized", "carbohydrate", "carcinomas", "card", "cardiac", "cardiologists", "cardiovascular", "careers", "careful", "carelessness", "carfentanil", "carmakers", "carolina", "carpeting", "carries", "carry", "carrying", "carthaginians", "carvings", "cast", "castle", "catastrophic", "category", "cautiously", "cavaliers", "cavities", "celebrate", "celebration", "centaurus", "ceo", "certainty", "cesarean", "chair", "challenged", "chambers", "chances", "channel", "chappell", "characteristic", "charitable", "charities", "charles", "chase", "chased", "chasing", "chasm", "cheaper", "checking", "checks", "cheek", "cheerful", "chemically", "chemist", "chemistry", "cherished", "cherishing", "chiapas", "chicago", "chicks", "chief", "chimpanzees", "chimps", "chirps", "chloramphenicol", "chloroplasts", "chocolate", "choosing", "chords", "christmas", "chronologically", "chytrid", "circadian", "circuit", "circuitry", "circuits", "circular", "circumstantial", "cirrus", "citizenship", "civets", "civilizations", "civilized", "claim", "clamped", "clapping", "classical", "classification", "classified", "classrooms", "claws", "clay", "cleaner", "clearer", "clever", "cliffs", "climbing", "clinical", "clip", "clippy", "clips", "closer", "closes", "closing", "closure", "cloth", "clothing", "clubs", "clumsiness", "cluster", "clusters", "coarsest", "coasters", "coastline", "coat", "cobalt", "cobbling", "cocktail", "codes", "cognitions", "coherent", "cohort", "coincidence", "coincides", "coinciding", "coined", "cola", "coli", "collaboration", "collapsing", "collection", "colleges", "collide", "colonial", "colonized", "colorectal", "colorful", "colorless", "combination", "combinatorial", "combine", "comedy", "comets", "comforts", "comic", "commercialisation", "commission", "commit", "commitment", "commits", "committed", "commodity", "commonplace", "communicated", "communicating", "communications", "comorbidities", "comparing", "comparisons", "compelling", "compete", "competent", "complain", "complained", "complaints", "complements", "complexities", "complimented", "composer", "compound", "comprehend", "comprehension", "compressed", "compresses", "compression", "comprise", "computation", "concentrate", "concentrating", "concerning", "concise", "concrete", "concussion", "conditioned", "conditioning", "conducive", "conducting", "cones", "confederacy", "confines", "confirms", "conflicts", "confronting", "conglomerate", "congressman", "connective", "conscientious", "conscientiousness", "conscious", "consecutive", "consensus", "conservatism", "conservator", "conserving", "considers", "consist", "consistency", "consistent", "consistently", "consortium", "conspiracy", "constipation", "constitutions", "constraints", "construction", "constructive", "consul", "consult", "consultants", "consulted", "consumerism", "contact", "containing", "containment", "contemplation", "contempt", "contests", "contexts", "continents", "contract", "contracts", "contrary", "contrasting", "contributes", "controversial", "controversy", "converged", "conversely", "convey", "convicts", "convince", "cooler", "coolness", "cooperation", "coordinate", "coordinator", "copied", "copy", "coral", "cord", "cornish", "corralled", "corrected", "correlated", "correlations", "correspondents", "cortex", "cortical", "costa", "costco", "cottage", "counterparts", "counting", "coupled", "courage", "courtesy", "cousins", "cov", "cove", "cover", "covered", "covers", "cows", "coyotes", "crack", "cradle", "crafting", "crash", "creativity", "credentials", "crews", "crime", "crimes", "critics", "crop", "cropland", "crosses", "crossings", "crowds", "crown", "crowned", "cruelest", "cruelty", "crunch", "crustaceans", "crystal", "cube", "cuddle", "cues", "cultivated", "cultivation", "cumulus", "cup", "cupids", "cups", "curating", "curation", "curator", "curb", "curiosity", "curling", "currency", "currents", "curriculum", "curriculums", "custom", "customized", "customizing", "cvs", "cycling", "damp", "dams", "dancer", "dangers", "danish", "danny", "danziger", "dao", "dare", "darkness", "dataset", "date", "dawn", "daycare", "dazzling", "deadly", "deaf", "dealer", "deals", "dean", "debilitating", "debts", "debunked", "debut", "decaf", "decayed", "decided", "decides", "declaration", "declarations", "declare", "declaring", "declining", "decomposition", "decoration", "decreased", "decrepitude", "decried", "dedicated", "deemed", "deer", "defeat", "defences", "defensive", "deficient", "deficit", "deficits", "defines", "definite", "definitely", "deforestation", "defrauded", "defy", "delayed", "delight", "delighted", "delineated", "delone", "delta", "deluded", "demands", "demeaning", "demise", "democratic", "democratizing", "demographics", "demography", "demon", "dems", "denounced", "denser", "densest", "denying", "dependency", "depict", "depleted", "depleting", "depressions", "depressive", "deprives", "depth", "derived", "desalinate", "desalination", "descendants", "descending", "desert", "desirable", "desire", "desired", "destruction", "destructive", "detectable", "detected", "detecting", "deter", "determining", "deterministic", "detroit", "devastation", "developers", "develops", "deviations", "dialect", "diameter", "dictate", "dictates", "dictatorship", "dictionary", "diego", "differently", "dig", "digitalization", "diligently", "diluted", "dimension", "dimensional", "dimensions", "dining", "dinosaur", "diplomacy", "directional", "disabilities", "disabled", "disadvantaged", "disadvantages", "disagree", "disappearing", "disappointed", "disciplines", "disconnected", "discounted", "discourse", "discovering", "discriminate", "discriminates", "discursive", "discussing", "disguises", "dislike", "dismissal", "disordered", "disoriented", "disparity", "dispensing", "disperse", "dispersing", "displaying", "disproportionately", "disregard", "disrupts", "dissected", "dissemination", "dissolved", "distillation", "distillations", "distinction", "distinctions", "distinctive", "distinctly", "distinguish", "distinguishing", "distort", "distracted", "distractions", "distress", "distribute", "distributed", "distributions", "distributors", "district", "disturbance", "divergences", "diverting", "divisive", "doctors", "document", "documented", "dog", "dogs", "dollar", "domains", "dominant", "domination", "donations", "donor", "doom", "dopamine", "dordogne", "dormant", "dorsal", "dorset", "dorsey", "dose", "dotted", "doubles", "doubt", "doubtless", "dove", "downside", "downsized", "downstream", "downturn", "downwind", "drag", "dragged", "drainage", "drama", "draw", "drawings", "drawn", "drew", "drier", "drill", "driverless", "drives", "drizzle", "drone", "drop", "dropping", "drops", "drugs", "dubious", "durable", "dust", "dwarf", "dwarfing", "dwayne", "dwelling", "dyes", "dynamic", "dynamics", "dysfunctional", "dysosmia", "earmarked", "earners", "earthen", "ease", "eased", "eaters", "ecologically", "ecology", "economically", "economists", "ecotourism", "edges", "educationalists", "educations", "eel", "effectiveness", "efficacy", "egg", "eighteen", "eighty", "einstein", "el", "elastic", "elbows", "elder", "elderly", "elected", "elections", "electives", "electoral", "electrodes", "electrolyte", "electrolyzer", "elementary", "elements", "elephant", "elevated", "eleven", "eligibility", "eligible", "elites", "elongated", "elude", "emancipate", "embassies", "embed", "embedded", "embraced", "embryonic", "embryos", "emigrants", "eminent", "emitting", "empathy", "emphasis", "emphasized", "empire", "employee", "employs", "empowerment", "emptied", "enclosed", "encodes", "encompassed", "encountered", "endangerment", "endeavor", "endeavors", "endless", "endoplasmic", "endorsing", "ends", "endurance", "endure", "energized", "enforced", "engels", "engineered", "engineering", "englishmen", "enhance", "enigmatic", "enjoying", "enjoyment", "enormous", "enriching", "enrol", "enrolling", "entail", "enter", "entering", "enters", "entertainment", "enthusiasts", "enticing", "entirety", "entity", "entrant", "entrenched", "entrepreneurs", "entries", "environmentally", "enzymes", "eons", "epic", "epics", "epidemic", "epidemics", "epoxy", "equal", "equality", "equation", "equations", "equipping", "erected", "erp", "erratic", "erratically", "error", "eruption", "escalating", "escaped", "esoteric", "establishing", "establishments", "estuaries", "eth", "ethical", "ethicists", "eukaryote", "eukaryotes", "eurasia", "evaporates", "evaporating", "evaporation", "eve", "evening", "everglades", "evident", "evolve", "exacerbated", "exaggerated", "examinations", "examine", "exceedingly", "exceeds", "excellence", "except", "exception", "excess", "exchanged", "exchanging", "exciting", "exclude", "excluded", "excluding", "exclusive", "execute", "executives", "exercises", "exercising", "exhausting", "exhibit", "existed", "existing", "exists", "exometabolomics", "expand", "expands", "expectation", "expects", "expedia", "expenditure", "experimenters", "explanation", "explicatory", "exploded", "exploding", "exploited", "explorer", "explosions", "explosive", "export", "expressed", "expresses", "expression", "extended", "extensive", "extensively", "exterior", "extinct", "extra", "extracting", "extraterrestrial", "eyelids", "fabric", "faces", "facial", "facilitate", "facilitated", "facilitating", "facility", "facts", "fad", "fail", "failing", "fails", "fair", "faltered", "familiarity", "famine", "famines", "fanfare", "fans", "fantasies", "fantasize", "fantastically", "faraday", "farm", "farms", "fascia", "fathers", "fatty", "fauna", "favour", "fearful", "feasible", "feast", "feathers", "federalist", "fee", "feelings", "feels", "feline", "fell", "fellow", "felt", "femininity", "fence", "fences", "ferrassie", "ferrets", "ferry", "fibers", "fibre", "fights", "filed", "files", "filesharing", "filmmaker", "films", "fin", "financially", "fine", "finely", "finer", "finest", "finger", "fingers", "finished", "finland", "fins", "firearms", "firefighting", "fireworks", "fiscal", "fitter", "fix", "fixes", "fixing", "fizzled", "flag", "flame", "flammable", "flares", "flashes", "flattening", "flavored", "flavors", "fleeing", "flesh", "flexibility", "fliers", "flight", "flogged", "floor", "flop", "florida", "flowering", "fluent", "flung", "fluttering", "fluvial", "flyways", "focal", "foes", "foldable", "folks", "followers", "foods", "footage", "forage", "foraging", "forbid", "forced", "forcibly", "forcing", "forebrain", "forensic", "forerunner", "forestry", "forever", "forget", "forgetting", "forgotten", "formally", "former", "forming", "formulated", "formulating", "forth", "fossilized", "foster", "fought", "founded", "founding", "fox", "fragrant", "framework", "francisco", "frantz", "fraught", "fred", "freie", "frequencies", "frequency", "frequently", "freshen", "fretting", "friedrich", "friendliness", "frightened", "fringed", "fritz", "frontera", "frustration", "fueled", "fulfillment", "fulfills", "fullest", "functioning", "fundamentally", "fungal", "fungi", "fungus", "furry", "further", "furthermore", "fury", "g", "gained", "gaining", "galactic", "gallery", "gambled", "gambling", "game", "gameplay", "gaming", "ganglia", "ganymede", "gaping", "garden", "gasoline", "gasses", "gastrointestinal", "gates", "gather", "gathered", "gatherer", "gathering", "gauges", "gave", "gears", "gender", "generalities", "generalization", "generalized", "generated", "generating", "generators", "genetics", "genius", "genome", "gentleman", "geo", "geochemistry", "geographical", "geologically", "geologists", "geology", "german", "gestures", "getter", "ghana", "giant", "gibbon", "gift", "gizmos", "glacial", "glaciation", "glaciers", "glamorous", "glass", "glimpse", "glimpses", "globally", "globe", "globular", "glorious", "glow", "glucose", "glyphs", "goldsmith", "golgi", "gombe", "goodbye", "goodwin", "gop", "gore", "gorilla", "governance", "governed", "governing", "governmental", "graded", "grades", "grads", "gradually", "grains", "granted", "grants", "graphene", "graphing", "graphs", "grappling", "grasp", "grass", "grasses", "gratified", "gratitude", "graupel", "gravitational", "gray", "graz", "graze", "greece", "greenish", "greenland", "grey", "grim", "grimaldi", "grinding", "groceries", "groove", "groundbreaking", "groundwater", "grouped", "grudgingly", "guardians", "guards", "guests", "guidance", "guidelines", "guides", "guiding", "gulf", "gunpowder", "habitats", "habituated", "hackers", "hadn", "hails", "hainan", "hallmark", "halves", "handbook", "handful", "handle", "handset", "handsome", "hang", "hannibal", "harassment", "hardcopy", "hardest", "hardier", "hardly", "hardship", "hardwood", "harm", "harmful", "harming", "harmonize", "harnesses", "harsh", "harvest", "harvests", "haunts", "hawkins", "hazard", "headaches", "heard", "hearted", "heats", "hectic", "helens", "heliodor", "helpful", "hemingway", "heralded", "herders", "herding", "herds", "heredity", "heritable", "heritage", "heroes", "hesitancy", "hesitant", "heterogeneity", "hetty", "heyday", "hidden", "hierarchical", "hierarchy", "highlighted", "highlights", "hiking", "hill", "hillary", "hillsides", "himalayas", "hind", "hips", "hiring", "hiroshima", "historic", "histories", "hit", "hitched", "hoax", "hobbes", "hobbyists", "holder", "holdings", "holds", "holistic", "homes", "homesick", "honeymoon", "hooked", "hopeful", "hopefully", "hoping", "horizons", "hormone", "hormones", "horrors", "hosted", "hostility", "hotline", "hotshots", "hotter", "howard", "humanly", "humour", "humus", "hunger", "hunter", "hunters", "hybridization", "hydrated", "hydraulic", "hydroplanes", "hydropower", "hydrothermal", "hypatia", "hype", "hyperactivity", "hypothesized", "hypothetical", "iau", "ichthyosaurus", "icon", "identical", "identification", "identifies", "identifying", "idle", "ignorance", "ignored", "ikea", "illustrious", "image", "imagery", "imaginations", "imaging", "imbrium", "immense", "immensely", "immigration", "imminent", "immunologist", "immunology", "immunotherapies", "impacted", "impaired", "impairing", "impatience", "impersonator", "implantable", "implanting", "implementation", "implemented", "implementing", "imported", "impose", "imprint", "improving", "improvise", "improvised", "impulsively", "inadvertently", "inaugurating", "incandescent", "incentives", "incentivised", "inception", "incisions", "inclusion", "incomes", "incomprehension", "incursions", "independence", "index", "indicating", "indication", "indicator", "indicators", "indigo", "individually", "indonesia", "indoor", "induce", "induced", "inducing", "indulged", "industrialized", "ineligible", "inequalities", "inertia", "inevitably", "inexpensive", "infallible", "infected", "infectious", "infer", "infertility", "infiltration", "infinite", "inflammation", "inflation", "influencers", "influential", "informed", "infrared", "ingeborg", "ingrained", "ingredients", "inhalation", "inhibited", "initiate", "initiating", "injured", "innovate", "inoculation", "inquiry", "inspect", "inspire", "inspiring", "installed", "instant", "instructor", "instrument", "instrumental", "insufficient", "insulation", "insults", "insured", "intact", "intake", "integral", "integrated", "intense", "intensities", "intensity", "intensively", "interact", "interactivity", "interacts", "interchangeably", "interconnected", "intercultural", "interdependence", "interfaces", "interferon", "intergovernmental", "interior", "interiors", "interludes", "intermittent", "internalize", "internationally", "interpersonal", "interpret", "interpretations", "interpreted", "interpreting", "interrupted", "interruptions", "intertwinings", "interval", "interview", "intimate", "intimately", "intimidated", "intolerance", "intricacies", "intrigued", "introduce", "introducing", "introduction", "introverted", "intrusion", "intuitive", "invades", "invariably", "invented", "invention", "inventions", "inventive", "inventor", "inverse", "invertebrates", "investigate", "investigation", "investigations", "investors", "iraq", "irresistibly", "irrespective", "irresponsible", "irreversible", "irritating", "isolate", "isolation", "issuers", "jabs", "jack", "java", "javan", "jean", "jeans", "jennifer", "jet", "jeweled", "joes", "john", "johnson", "joint", "joints", "jokes", "jordan", "journalism", "judges", "judith", "juice", "juiciest", "jumbo", "junction", "jungle", "junk", "jura", "justice", "justifiable", "justly", "kainuu", "karno", "karoshi", "keeps", "ken", "kenya", "kicks", "kidneys", "kill", "killed", "kilometers", "kindermann", "king", "kit", "knee", "knock", "knowledgeable", "kobe", "korea", "kyoto", "labeled", "labels", "laboratories", "laborious", "labors", "lace", "lacks", "ladder", "lagerpetids", "laggardly", "laid", "lake", "lancet", "landmarks", "larvae", "laser", "lasers", "lassoed", "lasting", "laugh", "laughed", "laughter", "lauryn", "lawmakers", "laws", "lawyers", "lay", "leafing", "leaks", "lean", "leapfrogging", "learner", "learnt", "leasing", "lectures", "legally", "legend", "legends", "legible", "legionary", "leisure", "lending", "lengthy", "lessen", "lesson", "lethargy", "levees", "leveling", "leverage", "libraries", "lie", "lifespan", "lifting", "likelihood", "limbo", "limbs", "lined", "lingual", "link", "liquids", "listen", "listeners", "listing", "literacy", "lively", "livery", "livestock", "lizard", "loeb", "loggerhead", "logic", "logical", "logistical", "loman", "longest", "longevity", "loophole", "loosest", "lortzing", "loudness", "loves", "loyalty", "lullaby", "lunch", "lung", "lure", "luxurious", "lyme", "macho", "macroeconomics", "macs", "madison", "magnetar", "magnets", "magnificent", "magnitude", "mail", "maintaining", "majors", "makers", "malawi", "malt", "malting", "malts", "mandates", "mandatory", "manifesto", "manipulator", "mankind", "manner", "manpower", "manufacture", "manufactured", "margaret", "margins", "marine", "mariner", "markers", "marketed", "marketplace", "marooned", "marsh", "marshmallows", "mary", "masculinity", "mash", "massage", "mastering", "maternal", "mates", "maths", "matthew", "mature", "maturity", "maximization", "maximize", "mayan", "maybe", "mcdonalds", "meadows", "meantime", "meanwhile", "measurable", "measured", "measuring", "meatless", "mechanosensation", "medial", "medieval", "meds", "melodies", "membership", "memorable", "memorably", "memories", "mentality", "mention", "merchandizing", "merciless", "merged", "message", "messages", "messaging", "messenger", "messy", "met", "meta", "metabolisms", "metaphor", "meteorite", "meteorites", "meteorology", "meters", "methane", "methodology", "metre", "metropolitan", "mfb", "miami", "mic", "michael", "michelle", "micro", "microbe", "microeconomic", "microsoft", "mid", "midwife", "migrated", "milk", "millimeters", "mills", "miner", "minimize", "minors", "minutes", "minutiae", "misconception", "misconstrue", "misinformation", "misread", "mistake", "mistakenly", "mistakes", "mistreated", "misunderstand", "mitigating", "mitigation", "mitochondria", "mixtures", "moat", "mobility", "modeled", "modification", "modifications", "modified", "molluscs", "molt", "molten", "momentum", "monitors", "monster", "montebello", "montreal", "monumental", "morality", "mortar", "mortgages", "mosaic", "mosquito", "mosquitoes", "moth", "motivate", "motivational", "motorcycle", "mound", "mounds", "mounts", "mourning", "mouse", "mouths", "movies", "mri", "mtbr", "mucus", "mull", "multifaceted", "multilingualism", "multiplicity", "munoz", "murderous", "musicians", "mutualism", "muzzle", "myriad", "mysterious", "myth", "mythical", "nab", "namely", "namesake", "naming", "nap", "naps", "narratives", "narrow", "nasty", "nationally", "naturally", "navigate", "nazis", "neanderthal", "neanderthals", "nearing", "nectaries", "nectary", "needles", "negotiations", "neighborhoods", "neighboring", "neighbours", "nelson", "nervous", "nesting", "net", "neurological", "neurotechnology", "neurotransmitter", "newfound", "newlywed", "newspaper", "newspapers", "nikola", "nimbus", "ninety", "noble", "nomenclature", "nominee", "nonetheless", "noninvasive", "nonpathogenic", "nonprofit", "nonscientists", "norm", "northcote", "nose", "note", "nourishes", "nowhere", "nuanced", "nuances", "nuclear", "nuclei", "nutritionally", "nyu", "nz", "obey", "objectives", "obligations", "observatory", "obsessive", "obstacles", "obtained", "obtaining", "obviously", "occasion", "occasional", "occident", "occupational", "occupations", "occupied", "oceans", "odd", "odder", "odor", "offense", "offering", "official", "olds", "olfaction", "ontario", "onto", "opened", "operators", "opponents", "opportunities", "opposed", "opposition", "oppression", "opt", "opted", "optic", "optimization", "optional", "optogenetic", "optogenetics", "orators", "orbital", "orbiting", "orchestras", "organisation", "organisations", "organizational", "organize", "orient", "originals", "originating", "ornament", "ornamenting", "orphanage", "oscar", "ostrobothnia", "outbreak", "outbreaks", "outcompete", "outer", "outlive", "outlook", "outperform", "output", "outstanding", "outstandingly", "outward", "oven", "ovens", "overcome", "overhead", "overlaps", "overlooked", "overnight", "overpopulation", "overtaking", "overtime", "overturned", "overwhelmed", "overwork", "owed", "owned", "ownership", "owns", "p", "packages", "packed", "pageants", "paint", "palate", "paleontological", "paleoseismology", "palm", "pamphlet", "pang", "paradigm", "paradise", "paramount", "parental", "parish", "parker", "participated", "parties", "partisan", "partly", "paso", "pass", "passage", "passes", "patch", "patches", "paternal", "paternalistic", "path", "pathogens", "pathologist", "pathos", "patrol", "paving", "paws", "paying", "payments", "payroll", "pcs", "pda", "peaceful", "pebble", "pedestrianized", "peltier", "pelvic", "penal", "penguins", "pennies", "pension", "perceived", "perceiving", "perception", "perennial", "performer", "perfumes", "permanent", "permeable", "permitted", "peroxide", "perpetrated", "perpetrator", "perplexing", "persist", "persistently", "persists", "persona", "personally", "personnel", "persuasively", "persuasiveness", "petition", "petra", "pets", "ph", "pharmacy", "philanthropists", "philippe", "philosophers", "philosophical", "phone", "photo", "photocopies", "photographed", "photographing", "photorealistic", "photos", "phrases", "physician", "physicians", "physicist", "physicists", "physiological", "physiology", "phytoplankton", "picking", "pickup", "pictured", "piece", "pieces", "piercing", "pig", "pigments", "pigs", "pill", "pillage", "pilot", "pilots", "pinpointed", "pioneering", "pirates", "pit", "pitch", "pitfalls", "placement", "placing", "plain", "plains", "planes", "planned", "plantings", "plastics", "platforms", "playroom", "please", "plodding", "plover", "plumptre", "plunge", "plurality", "plywood", "poet", "poignant", "poison", "poisons", "polarity", "pollutants", "polluted", "polybius", "polygons", "ponder", "pondering", "pool", "pools", "poorest", "pope", "populated", "populous", "porpoises", "portion", "ports", "posed", "positioning", "possessing", "possession", "posted", "postgraduate", "postgraduates", "posture", "potatoes", "pottery", "pounds", "poverty", "powers", "pr", "practically", "practitioners", "prague", "precautions", "precipitous", "precision", "precursor", "precursors", "predicted", "predictor", "predilection", "predisposition", "predominantly", "predominate", "preferable", "preferably", "preferences", "preferred", "preferring", "pregnancy", "prejudice", "premature", "premises", "premium", "premotor", "preparation", "preparedness", "prerequisite", "prescription", "presentation", "presentations", "presented", "presents", "preservation", "preserver", "preserving", "presidential", "pretend", "pretending", "pretty", "prevailing", "prevalence", "prevalent", "prevention", "pricking", "princeton", "principle", "principles", "print", "prioritization", "prioritize", "priority", "privacy", "prized", "proactive", "probable", "probationary", "probe", "procedures", "proceedings", "processed", "procrastination", "profession", "professor", "profiles", "profitability", "profitable", "profits", "profound", "programed", "programme", "prohibit", "prohibiting", "projected", "projecting", "prominent", "promise", "promotes", "promotion", "prompting", "proof", "propagate", "propagating", "propel", "propels", "proportions", "proposing", "propulsion", "prose", "prospect", "prosper", "prosperous", "prostate", "prosthesis", "protective", "protects", "protozoa", "provider", "provincial", "prussia", "pterosaurs", "publicity", "puerto", "pull", "pulls", "pulses", "pumping", "punishment", "pupil", "purchasing", "pure", "pursued", "pursuit", "push", "puzzle", "puzzles", "puzzling", "quadrupled", "quake", "qualification", "qualities", "quantifiable", "quarters", "queen", "quell", "quiescent", "quiet", "quo", "quoted", "radicals", "rage", "raid", "raises", "raising", "rajoelina", "ramifications", "randomness", "ranged", "ranges", "ranging", "rankings", "ranks", "rare", "rarest", "rashly", "ratio", "rational", "razor", "reaction", "reactions", "readability", "readings", "ready", "realities", "realization", "reasonably", "reasoning", "reassessed", "rebellion", "rebuilt", "recapture", "receivers", "receiving", "recession", "recharged", "recharges", "recipient", "recognition", "recognizes", "recolonized", "recommend", "recommends", "recording", "recover", "recreation", "recreationally", "recruit", "recruiters", "recruitment", "recursive", "recycle", "recycled", "red", "redesign", "redox", "reductions", "refer", "referred", "refine", "refining", "reflecting", "reflection", "reflexive", "reformation", "refracted", "refreshment", "refuge", "regard", "regenerate", "regeneration", "regis", "regulate", "regulated", "regulation", "regulator", "rehab", "rehabilitation", "rehearsal", "rehearse", "rehearsed", "reinterpreted", "reinvent", "reiss", "reiteration", "reject", "rejecting", "relates", "relating", "relax", "release", "releases", "reliability", "reliance", "reluctant", "remarkable", "reminds", "reminisces", "remnants", "removes", "renegotiate", "renewable", "renowned", "rental", "reopen", "repairs", "replacement", "reporting", "represent", "represents", "repression", "reproducing", "reptiles", "republic", "republicans", "requested", "requesting", "requirement", "researcher", "resembled", "resembling", "reserved", "reservoirs", "reshaped", "reside", "resident", "resides", "residual", "resilience", "resin", "resist", "resolution", "respected", "respectful", "respectively", "respects", "respiratory", "responded", "respondents", "responding", "responds", "responsibilities", "responsiveness", "restaurants", "restoring", "restrictive", "resurgence", "retailer", "retailers", "retain", "reticulum", "retiring", "retrieval", "reused", "revenue", "reverberation", "reverse", "reviewed", "reviewing", "revision", "revisions", "revolutionizing", "revolutions", "rewarded", "rewarding", "rewards", "rewrite", "rhythmically", "rhythms", "ribbons", "ribosomes", "ribs", "rica", "richer", "richmond", "rico", "riders", "ridge", "riding", "rift", "rigorous", "rigorously", "rijt", "rims", "ring", "ripple", "rises", "rites", "rocket", "rockets", "rocks", "roles", "rosters", "routines", "rubs", "ruins", "ruling", "rumen", "ruminants", "rumped", "running", "runs", "sacrifice", "sad", "saddle", "safari", "safely", "saffron", "saho", "sailing", "salamander", "salamanders", "salary", "sale", "salesman", "salesmen", "salient", "salinity", "saliva", "salts", "saltwater", "samuel", "sand", "sandpiper", "sanitation", "sap", "sapped", "sars", "satanic", "satirical", "satisfied", "satisfy", "saturation", "saturday", "saudi", "sausage", "savannah", "saved", "scaffold", "scalp", "scandinavia", "scanned", "scans", "scarcity", "scars", "scattered", "scenarios", "scene", "scenery", "scented", "schedule", "scholarship", "schoolchildren", "schoolers", "schooling", "schoolrooms", "schulman", "scotland", "scottish", "scrapping", "screams", "screenwriters", "scrub", "sculptures", "seaboard", "sealed", "seals", "searches", "seas", "seasonal", "seasonally", "seasons", "seat", "secluded", "secondary", "seconds", "secretes", "secretive", "sectarian", "secure", "sedatives", "sedentary", "seeds", "seedy", "seeks", "seemingly", "seeping", "segmentation", "seismology", "seismometers", "seize", "seldom", "select", "selective", "selflessly", "selling", "semester", "semi", "semiconductor", "semisolid", "sending", "sensation", "senses", "sensible", "sensitivity", "separates", "separation", "sequenced", "sequencing", "server", "serves", "sessions", "settings", "settled", "settling", "seventeen", "seventeenth", "seventy", "severely", "severity", "shading", "shall", "shaped", "shared", "shares", "shark", "sharpen", "sharpest", "sharply", "sharpness", "shelling", "shian", "shielded", "shifted", "shifts", "shining", "shipped", "shop", "shortage", "shortlisted", "shortly", "shoulders", "shriek", "shrimp", "shudders", "shutter", "shy", "sigh", "sighting", "sightings", "sights", "signed", "signing", "silt", "similarities", "similarity", "simons", "simpler", "simulated", "simulators", "simultaneously", "sinister", "sir", "sisters", "sit", "sixteen", "sixty", "sizeable", "sizes", "skeleton", "skelton", "skeptical", "skeptics", "skid", "skinner", "skins", "skulls", "slammed", "slapstick", "slaves", "sleet", "slender", "sliding", "slightest", "slog", "slogans", "slowdown", "slowed", "sludge", "sluggish", "smarter", "smartphone", "smartphones", "smithsonian", "smog", "smoothness", "snake", "snapping", "sniffles", "snouts", "socialize", "socially", "socioeconomic", "sociological", "sociologies", "sofie", "softer", "software", "soldier", "solitary", "solos", "solvent", "solving", "soothing", "southwest", "soviet", "spaces", "spanned", "spans", "sparse", "sparsely", "sparta", "spatiotemporal", "speaks", "specifically", "specimens", "speculation", "spelling", "spice", "spices", "spike", "spin", "spinal", "spirits", "spiritual", "splendor", "sponge", "sponges", "sponsored", "spores", "sport", "spotlight", "spreading", "spring", "springtime", "sputnik", "squadron", "squirrels", "st", "stab", "stabilize", "stable", "stages", "staggering", "stairs", "stakeholders", "stale", "stance", "standardized", "stands", "stanford", "starry", "starts", "startup", "stays", "steadily", "steady", "steel", "steep", "stem", "steps", "stepwise", "sterilization", "stewardship", "stick", "stickiness", "stimulus", "stitchbird", "stockholm", "stomached", "stones", "stood", "stops", "storage", "straddling", "strains", "strait", "strandlopers", "stratus", "streak", "strengthen", "strengthened", "stresses", "stretchable", "stretching", "strict", "strictest", "strides", "strike", "strikes", "striving", "strolls", "strongest", "structural", "studios", "stuff", "subjected", "subjective", "sublime", "submitted", "subsequent", "subsistence", "subspecies", "substances", "subtleties", "suburbs", "successor", "suck", "suffered", "suite", "suited", "sumbawa", "summerhill", "summers", "sums", "sunny", "supercomputer", "superolateral", "superpower", "supersonic", "supporting", "suppose", "supposed", "surely", "surgical", "surround", "surveying", "surveys", "survival", "survivals", "surviving", "survivors", "susceptible", "suspended", "suspicion", "sustaining", "sustains", "swamp", "swath", "sweeps", "sweets", "swift", "swimming", "swims", "switzerland", "symbiotic", "sympathetic", "sympathy", "synapses", "sync", "synchronization", "synergy", "systematically", "table", "tables", "tablets", "tackle", "tackled", "taco", "tactic", "tail", "tailed", "talents", "talks", "tall", "tangible", "tangles", "tank", "tantalizing", "tantamount", "tanzania", "taps", "tariff", "tariffs", "tasting", "teaming", "teamwork", "teasing", "tech", "technical", "technologists", "tectonic", "teenage", "teens", "tele", "telephone", "telescopes", "temperamental", "tempo", "tempt", "tended", "tendencies", "tendency", "tending", "tenfold", "termed", "terminal", "termites", "terra", "terrain", "terrains", "terribly", "terrifying", "territories", "tether", "text", "thanked", "thawed", "thawing", "theft", "thematically", "theorize", "therapy", "thermal", "thermoelectric", "thermometer", "thermoset", "thicker", "thin", "thode", "thompson", "thousandth", "threat", "threaten", "threatening", "threatens", "threats", "thresholds", "thrilled", "thriving", "throat", "throw", "thud", "thunderous", "thymi", "thymus", "tide", "tides", "tightened", "tighter", "tightly", "timekeepers", "timeless", "timely", "timetables", "tip", "tired", "toad", "toast", "toasted", "toaster", "tobias", "told", "tolerance", "toll", "tongue", "tonnes", "topography", "toronto", "tortured", "tough", "toughest", "tourette", "tours", "towering", "towns", "toxicity", "toxicology", "toy", "trace", "track", "tracked", "tracks", "tract", "tracts", "traditions", "traffic", "trafficking", "trails", "train", "trained", "trajectory", "tramp", "tranquilizers", "transcribe", "transcripts", "transform", "transformation", "transformations", "transforming", "transgenes", "transit", "transitory", "translate", "transparent", "transplants", "transportation", "traps", "trash", "traumas", "traveled", "tray", "treasure", "treasury", "treat", "treated", "treaty", "tremble", "trials", "triangle", "tribune", "trick", "tries", "trigger", "triggered", "tripadvisor", "triumphs", "troops", "trucks", "trust", "tsunami", "tube", "tuesday", "tuition", "tulip", "tunic", "turbines", "turbulent", "turkey", "turnaround", "turnover", "turtle", "tusk", "twin", "ubiquitous", "ugliest", "ultimate", "un", "unable", "unassailable", "unaware", "unbecoming", "uncaffeinated", "uncertainty", "unclear", "unconscious", "undegraded", "underdeveloped", "undergoing", "underlying", "undermined", "undershirt", "understandable", "understory", "undertake", "underwater", "undesirable", "undetectable", "undiagnosed", "undone", "undreamt", "unearthed", "unexpected", "unexplained", "unfairly", "unfavorable", "unfinished", "unfold", "unforced", "unidentifiable", "unifying", "unimaginable", "unimportant", "uninhabited", "uniquely", "unites", "unity", "universal", "unlock", "unmet", "unofficial", "unpaid", "unprecedented", "unprecedentedly", "unpredictability", "unproven", "unraveling", "unrealistic", "unseen", "unspeakable", "unsuccessfully", "unsurprising", "untenable", "untroubled", "unwilling", "unwittingly", "unwrap", "upbringing", "update", "upgrade", "upgraded", "upper", "uprisings", "uproot", "upside", "urinary", "useless", "usual", "utilities", "utilized", "utilizing", "utterance", "vacation", "vaccinated", "vaginally", "valuation", "valued", "valve", "van", "vanilla", "vanillin", "variant", "varieties", "vaudeville", "vegetables", "veins", "vendor", "vendors", "vents", "venues", "verified", "verify", "versatile", "versatility", "version", "vertebrates", "vested", "veterans", "viable", "vibrations", "vice", "victim", "victims", "victoria", "views", "vigilance", "vigor", "viking", "vikings", "villains", "vine", "virgin", "virgo", "virtue", "visited", "visually", "vlamingh", "volcanism", "volcano", "volcanologists", "volunteering", "voting", "vr", "vulnerabilities", "wage", "wait", "waiting", "waived", "wake", "walls", "walmart", "wandering", "wants", "ward", "warms", "warned", "warriors", "warty", "watchdog", "watched", "wauthier", "weak", "weaken", "weakening", "weapons", "wear", "wearable", "wearing", "wears", "weathered", "wedding", "wednesday", "weekend", "weigh", "weights", "welder", "wellbeing", "westerners", "wetter", "whale", "whaling", "wharton", "wheelchair", "whichever", "whirl", "whistles", "whitehall", "whittled", "whom", "widening", "wider", "wilderness", "willem", "william", "willingness", "wine", "wings", "winner", "winters", "wiping", "wireless", "wirelessly", "wires", "wisdom", "wished", "withholds", "witness", "woke", "wolf", "womb", "won", "wondered", "wonders", "wooded", "woodland", "woodlands", "wool", "woollen", "wordsworth", "wordy", "wore", "workable", "workforce", "workmates", "workplaces", "workspaces", "worms", "worrying", "wouldn", "wound", "wreck", "wynyard", "yellowish", "yelp", "yesterday", "youngster", "youngsters", "youth", "youths", "youtube", "zero", "zones", "zoom", "zurich"
+
+        ];
+        
+        // 单词数据
+        let allWords = builtInWords.map(word => ({ word, phonetic: undefined }));
+        let collectedWords = JSON.parse(localStorage.getItem('collectedWords')) || [];
+        
+        // 列表状态存储 - 用于记住位置
+        let listStates = {
+            main: {
+                currentIndex: 0,
+                scrollPosition: 0,
+                lastPlayedIndex: 0
+            },
+            collected: {
+                currentIndex: 0,
+                scrollPosition: 0,
+                lastPlayedIndex: 0
+            }
+        };
+        
+        // 恢复保存的列表状态
+        const savedStates = localStorage.getItem('wordListStates');
+        if (savedStates) {
+            listStates = JSON.parse(savedStates);
+        }
+        
+        // 当前活跃列表
+        let activeList = 'main';
+        let filteredWords = [...allWords];
+
+        // 全局变量
+        let currentIndex = listStates.main.currentIndex;
+        let isPlaying = false;
+        let isSlow = false;
+        let isAutoPlaying = false;
+        let selectedVoice = 'youdao-us';
+        let synth = window.speechSynthesis;
+        let utterance = null;
+        let currentAudio = null;
+        let voices = {
+            'standard-us': null,
+            'slow-english': null,
+            'british': null
+        };
+        
+        // 全屏状态变量
+        let isFullscreen = false;
+        
+        // 按钮显示/隐藏相关变量
+        let isControlsVisible =false;
+        let mouseInactivityTimer = null;
+        const INACTIVITY_THRESHOLD = 150000000; // 15秒无活动
+        
+        const GROUP_SIZE = 15;
+        let isPreloading = false;
+        
+        let listUserActive = false;
+        let lastListActivityTime = 0;
+        let listActivityTimer = null;
+
+        // DOM 元素
+        const wordDisplay = document.getElementById('word-display');
+        const phoneticDisplay = document.getElementById('phonetic-display');
+        const wordList = document.getElementById('word-list');
+        const listTitle = document.getElementById('list-title');
+        const listSearch = document.getElementById('list-search');
+        const prevBtn = document.getElementById('prev-btn');
+        const playBtn = document.getElementById('play-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const slowBtn = document.getElementById('slow-btn');
+        const themeToggle = document.getElementById('theme-toggle');
+        const autoPlayBtn = document.getElementById('auto-play-btn');
+        const addCollectionBtn = document.getElementById('add-collection-btn');
+        const collectedListBtn = document.getElementById('collected-btn');
+        const exportCollectedBtn = document.getElementById('export-collected-btn');
+        const voiceSelector = document.getElementById('voice-selector');
+        const voiceDropdown = document.getElementById('voice-dropdown');
+        const selectedVoiceEl = document.getElementById('selected-voice');
+        const voiceOptions = document.querySelectorAll('.voice-option');
+        const pronunciationArea = document.getElementById('pronunciation-area');
+        const fullscreenToggle = document.getElementById('fullscreen-toggle');
+        const fullscreenBackdrop = document.getElementById('fullscreen-backdrop');
+        const controlsContainer = document.querySelector('.controls-container');
+        const wordStats = document.getElementById('word-stats');
+
+        // 更新单词统计信息
+        function updateWordStats() {
+            const total = filteredWords.length;
+            const current = total > 0 ? currentIndex + 1 : 0;
+            wordStats.textContent = `Total: ${total} | Current: ${current}`;
+        }
+
+        // 初始化语音
+        function initVoices() {
+            function loadVoices() {
+                const availableVoices = synth.getVoices();
+                
+                availableVoices.forEach(voice => {
+                    if (!voices['standard-us'] && voice.lang.includes('en-US')) {
+                        voices['standard-us'] = voice;
+                    }
+                    if (!voices['slow-english'] && voice.lang.includes('en-US')) {
+                        voices['slow-english'] = voice;
+                    }
+                    if (!voices['british'] && voice.lang.includes('en-GB')) {
+                        voices['british'] = voice;
+                    }
+                });
+                
+                for (const key in voices) {
+                    if (!voices[key]) {
+                        voices[key] = availableVoices[0] || null;
+                    }
+                }
+            }
+            
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = loadVoices;
+            }
+            loadVoices();
+        }
+
+        // 按钮显示/隐藏控制函数
+        function hideControls() {
+            // 只有全屏模式下才隐藏按钮
+            if (isControlsVisible && isFullscreen) {
+                controlsContainer.classList.add('hidden');
+                isControlsVisible = false;
+            }
+        }
+        
+        function showControls() {
+            if (!isControlsVisible) {
+                controlsContainer.classList.remove('hidden');
+                isControlsVisible = true;
+            }
+            resetInactivityTimer();
+        }
+        
+        function resetInactivityTimer() {
+            if (mouseInactivityTimer) {
+                clearTimeout(mouseInactivityTimer);
+            }
+            
+            // 只有全屏模式下才启用自动隐藏
+            if (isFullscreen) {
+                // 如果当前是隐藏状态，立即显示
+                if (!isControlsVisible) {
+                    showControls();
+                }
+                
+                mouseInactivityTimer = setTimeout(hideControls, INACTIVITY_THRESHOLD);
+            }
+        }
+
+        // 音标字符替换
+        function replacePhonetic(phonetic) {
+            if (typeof phonetic !== 'string') return phonetic;
+            return phonetic
+                .replace(/ɹ/g, 'r')   // 替换 ɹ -> r
+                .replace(/ɛ/g, 'e')   // 替换 ɛ -> e
+                .replace(/ˌ/g, '')      // 删除 ˌ
+                .replace(/\./g, '');   // 删除 .
+        }
+
+        // 获取单词音标
+        async function getWordPhonetic(word, index) {
+            if (!word) return null;
+            
+            if (filteredWords[index] && filteredWords[index].phonetic !== undefined) {
+                return replacePhonetic(filteredWords[index].phonetic);
+            }
+            
+            try {
+                let phonetic = await fetchPhoneticFromYoudao(word);
+                if (phonetic) return replacePhonetic(phonetic);
+                
+                phonetic = await fetchPhoneticFromBing(word);
+                if (phonetic) return replacePhonetic(phonetic);
+                
+                phonetic = await fetchPhoneticFromDictionaryAPI(word);
+                if (phonetic) return replacePhonetic(phonetic);
+                
+                return "";
+                
+            } catch (error) {
+                console.error('获取音标失败:', error);
+                return "";
+            }
+        }
+
+        // 批量预加载音标
+        async function preloadPhonetics(startIndex, endIndex) {
+            if (isPreloading || startIndex >= filteredWords.length) return;
+            
+            isPreloading = true;
+            const loadPromises = [];
+            
+            endIndex = Math.min(endIndex, filteredWords.length - 1);
+            
+            for (let i = startIndex; i <= endIndex; i++) {
+                if (filteredWords[i] && filteredWords[i].phonetic === undefined) {
+                    loadPromises.push((async () => {
+                        const phonetic = await getWordPhonetic(filteredWords[i].word, i);
+                        filteredWords[i].phonetic = phonetic;
+                        
+                        // 更新所有列表中的该单词
+                        const allIndex = allWords.findIndex(w => w.word === filteredWords[i].word);
+                        if (allIndex !== -1) {
+                            allWords[allIndex].phonetic = phonetic;
+                        }
+                        
+                        if (document.querySelectorAll('.word-item')[i]) {
+                            updateWordListItem(i);
+                        }
+                    })());
+                }
+            }
+            
+            await Promise.all(loadPromises);
+            isPreloading = false;
+        }
+
+        function checkPreload() {
+            const currentGroup = Math.floor(currentIndex / GROUP_SIZE);
+            
+            if (currentGroup === 0 && currentIndex === 0) {
+                preloadPhonetics(0, Math.min(29, filteredWords.length - 1));
+            } else if (currentIndex % GROUP_SIZE === 0) {
+                const nextGroupStart = (currentGroup + 2) * GROUP_SIZE;
+                const nextGroupEnd = nextGroupStart + GROUP_SIZE - 1;
+                preloadPhonetics(nextGroupStart, Math.min(nextGroupEnd, filteredWords.length - 1));
+            }
+        }
+
+        // 音标获取API
+        async function fetchPhoneticFromYoudao(word) {
+            try {
+                const response = await fetch(`https://dict.youdao.com/search?q=${encodeURIComponent(word)}&doctype=json`);
+                const data = await response.json();
+                
+                if (data.basic) {
+                    if (data.basic['uk-phonetic'] && data.basic['us-phonetic']) {
+                        return `UK: /${data.basic['uk-phonetic']}/  US: /${data.basic['us-phonetic']}/`;
+                    }
+                    if (data.basic.phonetic) {
+                        return `/${data.basic.phonetic}/`;
+                    }
+                }
+                
+                if (data.data && data.data.entries && data.data.entries.length > 0) {
+                    const entry = data.data.entries[0];
+                    if (entry.usphone) return `US: /${entry.usphone}/`;
+                    if (entry.ukphone) return `UK: /${entry.ukphone}/`;
+                }
+                
+                return null;
+            } catch (error) {
+                console.error('有道API请求失败:', error);
+                return null;
+            }
+        }
+
+        async function fetchPhoneticFromBing(word) {
+            try {
+                const response = await fetch(`https://api.bing.com/dict/search?q=${encodeURIComponent(word)}&mkt=en-us`);
+                const data = await response.json();
+                
+                if (data.pronunciations && data.pronunciations.length > 0) {
+                    const usPhonetic = data.pronunciations.find(p => p.dialect === 'American');
+                    const ukPhonetic = data.pronunciations.find(p => p.dialect === 'British');
+                    
+                    if (usPhonetic && ukPhonetic) {
+                        return `UK: /${ukPhonetic.phonetic}/  US: /${usPhonetic.phonetic}/`;
+                    } else if (usPhonetic) {
+                        return `US: /${usPhonetic.phonetic}/`;
+                    } else if (ukPhonetic) {
+                        return `UK: /${ukPhonetic.phonetic}/`;
+                    }
+                }
+                
+                return null;
+            } catch (error) {
+                console.error('必应API请求失败:', error);
+                return null;
+            }
+        }
+
+        async function fetchPhoneticFromDictionaryAPI(word) {
+            try {
+                const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
+                if (!response.ok) throw new Error('API请求失败');
+                
+                const data = await response.json();
+                if (data && data.length > 0) {
+                    const entry = data[0];
+                    
+                    if (entry.phonetics && entry.phonetics.length > 0) {
+                        const phoneticObj = entry.phonetics.find(p => p.text) || entry.phonetics[0];
+                        if (phoneticObj.text) {
+                            return phoneticObj.text;
+                        }
+                    }
+                }
+                
+                return null;
+            } catch (error) {
+                console.error('词典API请求失败:', error);
+                return null;
+            }
+        }
+
+        function updateWordListItem(index) {
+            const listItems = document.querySelectorAll('.word-item');
+            if (listItems[index]) {
+                const item = filteredWords[index];
+                const isCollected = collectedWords.includes(item.word);
+                const collectedIcon = isCollected ? '<i class="fa fa-bookmark text-ios-blue dark:text-ios-blueDark mr-2"></i>' : '';
+                
+                let listItemContent = `${collectedIcon}${item.word}`;
+                if (item.phonetic && item.phonetic.trim() !== "") {
+                    const cleanPhonetic = item.phonetic.replace(/[\/\[\]]/g, '');
+                    listItemContent += `<span class="text-sm opacity-70 ml-2">${cleanPhonetic.substring(0, 15)}${cleanPhonetic.length > 15 ? '...' : ''}</span>`;
+                }
+                
+                listItems[index].innerHTML = listItemContent;
+            }
+        }
+
+        // 语音选择事件
+        voiceSelector.addEventListener('click', (e) => {
+            e.stopPropagation();
+            resetInactivityTimer();
+            if (filteredWords.length > 0) {
+                voiceDropdown.classList.toggle('show');
+            }
+        });
+
+        document.addEventListener('click', () => {
+            voiceDropdown.classList.remove('show');
+        });
+
+        voiceOptions.forEach(option => {
+            option.addEventListener('click', (e) => {
+                e.stopPropagation();
+                resetInactivityTimer();
+                
+                voiceOptions.forEach(opt => opt.classList.remove('selected', 'bg-ios-blue', 'text-white'));
+                option.classList.add('selected', 'bg-ios-blue', 'text-white');
+                
+                selectedVoice = option.dataset.voice;
+                const displayText = option.textContent.trim().replace(/^\d+\s*/, '');
+                selectedVoiceEl.textContent = displayText;
+                
+                voiceDropdown.classList.remove('show');
+                
+                if (isPlaying) {
+                    stopPlayback();
+                    setTimeout(startPlayback, 100);
+                }
+            });
+        });
+
+        // 列表搜索
+        listSearch.addEventListener('input', (e) => {
+            updateListActivity();
+            resetInactivityTimer();
+            
+            const searchTerm = e.target.value.trim().toLowerCase();
+            if (!searchTerm) {
+                // 重置过滤
+                filteredWords = activeList === 'main' ? [...allWords] : collectedWords.map(word => ({
+                    word,
+                    phonetic: allWords.find(w => w.word === word)?.phonetic
+                }));
+                currentIndex = 0;
+                renderWordList();
+                updateDisplay();
+                return;
+            }
+            
+            // 过滤单词
+            filteredWords = (activeList === 'main' ? allWords : collectedWords.map(word => ({
+                word,
+                phonetic: allWords.find(w => w.word === word)?.phonetic
+            }))).filter(item => item.word.toLowerCase().includes(searchTerm));
+            
+            currentIndex = 0;
+            renderWordList();
+            updateDisplay();
+            
+            // 高亮第一个匹配项
+            if (filteredWords.length > 0) {
+                const listItems = document.querySelectorAll('.word-item');
+                if (listItems[0]) {
+                    listItems[极速版].classList.add('bg-yellow-100', 'dark:bg-yellow-900/30');
+                    setTimeout(() => {
+                        listItems[0].classList.remove('bg-yellow-100', 'dark:bg极速版900/30');
+                    }, 2000);
+                }
+            }
+        });
+
+        // 切换列表
+        function toggleList() {
+            resetInactivityTimer();
+            
+            // 保存当前列表状态
+            listStates[activeList].currentIndex = currentIndex;
+            listStates[activeList].scrollPosition = wordList.scrollTop;
+            if (isPlaying || isAutoPlaying) {
+                listStates[activeList].lastPlayedIndex = currentIndex;
+            }
+            
+            // 保存到本地存储
+            localStorage.setItem('wordListStates', JSON.stringify(listStates));
+            
+            // 切换到另一个列表
+            activeList = activeList === 'main' ? 'collected' : 'main';
+            
+            // 更新UI
+            document.getElementById('list-title').textContent = 
+                activeList === 'main' ? 'Main List' : 'Collected List';
+            
+            // 更新按钮样式
+            if (activeList === 'collected') {
+                document.getElementById('collected-btn').classList.add('bg-ios-blue', 'text-white');
+                document.getElementById('collected-btn').classList.remove('bg-white', 'dark:bg-ios-cardDark', 'text-ios-textLight', 'dark:text-ios-textDark');
+            } else {
+                document.getElementById('collected-btn').classList.remove('bg-ios-blue', 'text-white');
+                document.getElementById('collected-btn').classList.add('bg-white', 'dark:bg-ios-cardDark', 'text-ios-textLight', '极速版text-ios-textDark');
+            }
+            
+            // 加载新列表
+            filteredWords = activeList === 'main' ? [...allWords] : collectedWords.map(word => ({
+                word,
+                phonetic: allWords.find(w => w.word === word)?.phonetic
+            }));
+            
+            // 恢复列表状态
+            currentIndex = listStates[activeList].currentIndex;
+            if (currentIndex >= filteredWords.length) currentIndex = 0;
+            
+            // 重新渲染列表
+            renderWordList();
+            
+            // 恢复滚动位置
+            setTimeout(() => {
+                wordList.scrollTop = listStates[activeList].scrollPosition;
+            }, 100);
+            
+            // 更新显示
+            updateDisplay();
+            
+            // 启用/禁用按钮
+            updateButtonStates();
+            
+            // 如果自动播放开启，从上次播放位置开始
+            if (isAutoPlaying && filteredWords.length > 0) {
+                currentIndex = listStates[activeList].lastPlayedIndex;
+                if (currentIndex >= filteredWords.length) currentIndex = 0;
+                updateDisplay();
+                startPlayback();
+            }
+        }
+
+        // 收藏功能
+        function toggleCollect() {
+            if (filteredWords.length === 0) return;
+            
+            resetInactivityTimer();
+            
+            const currentWord = filteredWords[currentIndex].word;
+            const index = collectedWords.indexOf(currentWord);
+            
+            if (index === -1) {
+                // 添加到收藏
+                collectedWords.push(currentWord);
+                showNotification(`"${currentWord}" added to collection`);
+                addCollectionBtn.innerHTML = '<i class="fa fa-check mr-1"></i><span>Added</span>';
+                addCollectionBtn.classList.add('bg-ios-blue/10', 'dark:bg-ios-blueDark/20', 'text-ios-blue', 'dark:text-ios-blueDark');
+            } else {
+                // 从收藏中移除
+                collectedWords.splice(index, 1);
+                showNotification(`"${currentWord}" removed from collection`);
+                addCollectionBtn.innerHTML = '<i class="fa fa-plus mr-1"></i><span>Add</span>';
+                addCollectionBtn.classList.remove('bg-ios-blue/10', 'dark:bg-ios-blueDark/20', 'text-ios-blue', 'dark:text-ios-blueDark');
+                
+                // 如果当前在收藏列表且移除了当前单词
+                if (activeList === 'collected' && index === currentIndex) {
+                    // 保存当前列表状态
+                    listStates[activeList].currentIndex = currentIndex;
+                    listStates[activeList].scrollPosition = wordList.scrollTop;
+                    
+                    // 重新加载收藏列表
+                    filteredWords = collectedWords.map(word => ({
+                        word,
+                        phonetic: allWords.find(w => w.word === word)?.phonetic
+                    }));
+                    
+                    // 调整当前索引
+                    currentIndex = Math.min(currentIndex, filteredWords.length - 1);
+                    if (filteredWords.length === 0) current极速版 = 0;
+                    
+                    // 更新列表状态
+                    listStates[activeList].currentIndex = currentIndex;
+                    localStorage.setItem('wordListStates', JSON.stringify(listStates));
+                    
+                    // 重新渲染
+                    renderWordList();
+                    updateDisplay();
+                }
+            }
+            
+            // 保存收藏列表
+            localStorage.setItem('collectedWords', JSON.stringify(collectedWords));
+            
+            // 更新列表项
+            updateWordListItem(currentIndex);
+        }
+
+        function updateCollectButtonState() {
+            if (filteredWords.length === 0) return;
+            
+            const currentWord = filteredWords[currentIndex].word;
+            if (collectedWords.includes(currentWord)) {
+                addCollectionBtn.innerHTML = '<i class="fa fa-check mr-1"></i><span>Added</span>';
+                addCollectionBtn.classList.add('bg-ios-blue/10', 'dark:bg-ios-blueDark/20', 'text-ios-blue', 'dark:text-ios-blueDark');
+            } else {
+                addCollectionBtn.innerHTML = '<i class="fa fa-plus mr-1"></i><span>Add</span>';
+                addCollectionBtn.classList.remove('bg-ios-blue/10', 'dark:bg-ios-blueDark/20', 'text-ios-blue', 'dark:text-ios-blueDark');
+            }
+        }
+
+        // 导出收藏单词
+        function exportCollectedWords() {
+            if (collectedWords.length === 0) {
+                showNotification('No collected words to export', true);
+                return;
+            }
+            
+            resetInactivityTimer();
+            
+            const text = collectedWords.join('\n');
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'collected_words.txt';
+            document.body.appendChild(a);
+            a.click();
+            
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showNotification('Collected words exported successfully');
+        }
+
+        // 显示通知
+        function showNotification(message, isError = false) {
+            // 全屏状态下不显示通知
+            if (isFullscreen) return;
+            
+            resetInactivityTimer();
+            
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 transition-all duration-300 transform translate-x-full ${
+                isError ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
+            }`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.classList.remove('translate-x-full');
+            }, 100);
+            
+            setTimeout(() => {
+                notification.classList.add('translate-x-full');
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+
+        // 更新按钮状态
+        function updateButtonStates() {
+            const hasWords = filteredWords.length > 0;
+            
+            prevBtn.disabled = !hasWords || filteredWords.length === 1;
+            nextBtn.disabled = !hasWords || filteredWords.length === 1;
+            playBtn.disabled = !hasWords;
+            slowBtn.disabled = !hasWords;
+            autoPlayBtn.disabled = !hasWords;
+            addCollectionBtn.disabled = !hasWords;
+            voiceSelector.style.opacity = hasWords ? '1' : '0.5';
+            voiceSelector.style.pointerEvents = hasWords ? 'auto' : 'none';
+        }
+        // 更新显示
+        async function updateDisplay() {
+            if (filteredWords.length === 0) {
+                wordDisplay.textContent = "Nothing";
+                phoneticDisplay.textContent = "  ";
+                updateWordStats();
+                return;
+            }
+            
+            checkPreload();
+            
+            const currentWord = filteredWords[currentIndex];
+            
+            // 仅对音标应用淡出效果
+            phoneticDisplay.classList.add('fading');
+            
+            // 等待音标淡出动画完成
+            await new Promise(resolve => {
+                setTimeout(resolve, 200);
+            });
+            
+            // 更新单词内容
+            wordDisplay.textContent = currentWord.word;
+            
+            // 处理音标显示
+            if (currentWord.phonetic !== undefined) {
+                const hasValidPhonetic = currentWord.phonetic.trim().length > 0;
+                phoneticDisplay.textContent = hasValidPhonetic ? currentWord.phonetic : "  ";
+            } else {
+                const phonetic = await getWordPhonetic(currentWord.word, currentIndex);
+                currentWord.phonetic = phonetic;
+                
+                // 更新原数组中的音标
+                const allIndex = allWords.findIndex(w => w.word === currentWord.word);
+                if (allIndex !== -1) {
+                    allWords[allIndex].phonetic = phonetic;
+                }
+                
+                const hasValidPhonetic = phonetic.trim().length > 0;
+                phoneticDisplay.textContent = hasValidPhonetic ? phonetic : "  ";
+                updateWordListItem(currentIndex);
+            }
+            
+            // 移除音标淡出类，触发淡入
+            phoneticDisplay.classList.remove('fading');
+            
+            updateCollectButtonState();
+            updateListHighlight();
+            updateWordStats();
+            
+            // 保存当前索引
+            listStates[activeList].currentIndex = currentIndex;
+            localStorage.setItem('wordListStates', JSON.stringify(listStates));
+        }
+
+        // 渲染单词列表
+        function renderWordList() {
+            wordList.innerHTML = '';
+            
+            if (filteredWords.length === 0) {
+                wordList.innerHTML = `
+                    <div class="flex items-center justify-center h-full text-neutral-500">
+                        <div class="text-center p-6">
+                            <i class="fa fa-file-text-o text-3xl mb-3 opacity-50"></i>
+                            <p>${activeList === 'main' ? 'No words available' : 'No collected words'}</p>
+                        </div>
+                    </div>
+                `;
+                updateButtonStates();
+                return;
+            }
+            
+            filteredWords.forEach((item, index) => {
+                const li = document.createElement('li');
+                const isCollected = collectedWords.includes(item.word);
+                const collectedIcon = isCollected ? '<i class="fa fa-bookmark text-ios-blue dark:text-ios-blueDark mr-2"></i>' : '';
+                
+                li.className = `word-item p-3 rounded-xl ${
+                    index === currentIndex 
+                        ? 'bg-ios-blue dark:bg-ios-blueDark text-white dark:text-white font-medium' 
+                        : 'hover:bg-ios-grayLight dark:hover:bg-gray-700 text-ios-textLight dark:text-ios-textDark'
+                } cursor-pointer`;
+                
+                let listItemContent = `${collectedIcon}${item.word}`;
+                if (item.phonetic && item.phonetic.trim() !== "") {
+                    listItemContent += `<span class="text-sm opacity-70 ml-2">${item.phonetic.replace(/[\/\[\]]/g, '').substring(0, 15)}${item.phonetic.length > 15 ? '...' : ''}</span>`;
+                }
+                
+                li.innerHTML = listItemContent;
+                li.addEventListener('click', () => {
+                    updateListActivity();
+                    resetInactivityTimer();
+                    
+                    currentIndex = index;
+                    stopPlayback();
+                    updateDisplay();
+                });
+                
+                wordList.appendChild(li);
+            });
+            
+            // 确保当前项可见
+            ensureItemVisible(currentIndex);
+            
+            // 更新按钮状态
+            updateButtonStates();
+        }
+
+        // 列表高亮和滚动
+        function updateListHighlight() {
+            if (filteredWords.length === 0) return;
+            
+            document.querySelectorAll('.word-item').forEach((item, index) => {
+                if (index === currentIndex) {
+                    item.classList.add('bg-ios-blue', 'dark:bg-ios-blueDark', 'text-white', 'dark:text-white', 'font-medium');
+                    item.classList.remove('hover:bg-ios-grayLight', 'dark:hover:bg-gray-700', 'text-ios-textLight', 'dark:text-ios-textDark');
+                } else {
+                    item.classList.remove('bg-ios-blue', 'dark:bg-ios-blueDark', 'text-white', 'dark:text-white', 'font-medium');
+                    item.classList.add('hover:bg-ios-grayLight', 'dark:hover:bg-gray-700', 'text-ios-textLight', 'dark:text-ios-textDark');
+                }
+            });
+            
+            checkListAutoScroll();
+        }
+
+        function updateListActivity() {
+            listUserActive = true;
+            lastListActivityTime = Date.now();
+            
+            if (listActivityTimer) {
+                clearTimeout(listActivityTimer);
+            }
+            
+            listActivityTimer = setTimeout(() => {
+                const inactivityTime = Date.now() - lastListActivityTime;
+                if (inactivityTime >= 5000) {
+                    listUserActive = false;
+                    checkListAutoScroll();
+                }
+            }, 5000);
+        }
+
+        function checkListAutoScroll() {
+            if (listUserActive) {
+                return;
+            }
+            
+            const inactivityTime = Date.now() - lastListActivityTime;
+            if (inactivityTime < 5000) {
+                return;
+            }
+            
+            ensureItemVisible(currentIndex);
+        }
+
+        // 确保指定索引的项在可视区域内
+        function ensureItemVisible(index) {
+            const listItems = document.querySelectorAll('.word-item');
+            const activeItem = listItems[index];
+            if (!activeItem) return;
+            
+            const listContainer = wordList;
+            
+            // 获取元素和容器的位置信息
+            const itemRect = activeItem.getBoundingClientRect();
+            const containerRect = listContainer.getBoundingClientRect();
+            
+            // 计算元素相对于容器的位置
+            const itemTop = itemRect.top - containerRect.top;
+            const itemBottom = itemRect.bottom - containerRect.top;
+            
+            // 定义安全区域的上下边距
+            const paddingTop = 20;
+            const paddingBottom = 20;
+            
+            // 如果元素在可视区域上方
+            if (itemTop < paddingTop) {
+                // 滚动到元素，使其顶部有paddingTop的空间
+                listContainer.scrollTop += (itemTop - paddingTop);
+            }
+            // 如果元素在可视区域下方
+            else if (itemBottom > containerRect.height - paddingBottom) {
+                // 滚动到元素，使其底部有paddingBottom的空间
+                listContainer.scrollTop += (itemBottom - (containerRect.height - paddingBottom));
+            }
+            
+            // 保存滚动位置
+            listStates[activeList].scrollPosition = listContainer.scrollTop;
+            localStorage.setItem('wordListStates', JSON.stringify(listStates));
+        }
+
+        // 平滑滚动到指定索引的项
+        function scrollToItem(index) {
+            const listItems = document.querySelectorAll('.word-item');
+            const item = listItems[index];
+            if (!item) return;
+            
+            // 使用平滑滚动
+            item.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'nearest' 
+            });
+            
+            // 滚动完成后再次检查
+            setTimeout(() => {
+                ensureItemVisible(index);
+            }, 300);
+        }
+
+        // 播放控制
+        function togglePlay() {
+            if (filteredWords.length === 0) return;
+            
+            resetInactivityTimer();
+            
+            if (isPlaying) {
+                stopPlayback();
+            } else {
+                startPlayback();
+            }
+        }
+
+        function stopCurrentPlayback() {
+            if (synth.speaking) {
+                synth.cancel();
+                utterance = null;
+            }
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+            }
+        }
+
+        // 核心同步播放函数
+        function startPlayback() {
+            if (filteredWords.length === 0) return;
+            
+            const currentWord = filteredWords[currentIndex];
+            stopCurrentPlayback();
+            
+            // 保存最后播放位置
+            listStates[activeList].lastPlayedIndex = currentIndex;
+            localStorage.setItem('wordListStates', JSON.stringify(listStates));
+            
+            // 确保显示当前单词和音标
+            wordDisplay.textContent = currentWord.word;
+            const hasValidPhonetic = currentWord.phonetic && currentWord.phonetic.trim().length > 0;
+            phoneticDisplay.textContent = hasValidPhonetic ? currentWord.phonetic : "  ";
+            
+            // 播放音频
+            if (selectedVoice === 'youdao-us' || selectedVoice === 'youdao-uk') {
+                playYoudaoAudio(currentWord.word);
+            } else {
+                playSystemVoice(currentWord.word);
+            }
+        }
+
+        function playYoudaoAudio(word) {
+            const type = selectedVoice === 'youdao-us' ? 2 : 1;
+            const audioUrl = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word)}&type=${type}`;
+            
+            currentAudio = new Audio(audioUrl);
+            currentAudio.playbackRate = isSlow ? 0.7 : 1.0;
+            
+            currentAudio.oncanplaythrough = () => {
+                currentAudio.play();
+            };
+            
+            currentAudio.onplay = () => {
+                isPlaying = true;
+                playBtn.innerHTML = '<i class="fa fa-pause"></i><span>Pause</span>';
+            };
+            
+            currentAudio.onended = () => {
+                handlePlaybackEnd();
+            };
+            
+            currentAudio.onerror = (e) => {
+                console.error('音频播放错误:', e);
+                handlePlaybackEnd(true);
+            };
+        }
+
+        function playSystemVoice(word) {
+            const voice = voices[selectedVoice];
+            if (!voice) {
+                showNotification('No voice available, please try another one', true);
+                return;
+            }
+            
+            utterance = new SpeechSynthesisUtterance(word);
+            utterance.voice = voice;
+            
+            let rate = 1.0;
+            if (selectedVoice === 'slow-english') {
+                rate = isSlow ? 0.5 : 0.7;
+            } else {
+                rate = isSlow ? 0.7 : 1.0;
+            }
+            utterance.rate = rate;
+            
+            utterance.onstart = () => {
+                isPlaying = true;
+                playBtn.innerHTML = '<i class="fa fa-pause"></i><span>Pause</span>';
+            };
+            
+            utterance.onend = () => {
+                handlePlaybackEnd();
+            };
+            
+            utterance.onerror = (e) => {
+                console.error('语音播放错误:', e);
+                handlePlaybackEnd(true);
+            };
+            
+            synth.speak(utterance);
+        }
+
+        // 播放结束处理函数
+        function handlePlaybackEnd(isError = false) {
+            isPlaying = false;
+            
+            if (isAutoPlaying && filteredWords.length > 0) {
+                playBtn.innerHTML = '<i class="fa fa-pause"></i><span>Pause</span>';
+                
+                // 仅对音标应用淡出效果
+                phoneticDisplay.classList.add('fading');
+                
+                // 等待音标淡出
+                setTimeout(() => {
+                    // 切换到下一个单词
+                    currentIndex = (currentIndex + 1) % filteredWords.length;
+                    
+                    // 保存当前索引
+                    listStates[activeList].currentIndex = currentIndex;
+                    localStorage.setItem('wordListStates', JSON.stringify(listStates));
+                    
+                    updateDisplay();
+                    
+                    // 显示完成后播放
+                    setTimeout(startPlayback, 100);
+                }, 200);
+            } else {
+                playBtn.innerHTML = '<i class="fa fa-play"></i><span>Play</span>';
+                if (isError) {
+                    showNotification('播放错误，请重试', true);
+                }
+            }
+        }
+
+        function stopPlayback() {
+            stopCurrentPlayback();
+            
+            isPlaying = false;
+            playBtn.innerHTML = '<i class="fa fa-play"></i><span>Play</span>';
+        }
+
+        // 慢速模式
+        function toggleSlow() {
+            if (filteredWords.length === 0) return;
+            
+            resetInactivityTimer();
+            isSlow = !isSlow;
+            
+            if (isSlow) {
+                slowBtn.classList.add('bg-ios-blue/10', 'dark:bg-ios-blueDark/20', 'text-ios-blue', 'dark:text-ios-blueDark');
+            } else {
+                slowBtn.classList.remove('bg-ios-blue/10', 'dark:bg-ios-blueDark/20', 'text-ios-blue', 'dark:text-ios-blueDark');
+            }
+            
+            if (isPlaying) {
+                stopPlayback();
+                setTimeout(startPlayback, 100);
+            }
+        }
+
+        // 自动播放
+        function toggleAutoPlay() {
+            if (filteredWords.length === 0) return;
+            
+            resetInactivityTimer();
+            isAutoPlaying = !isAutoPlaying;
+            
+            if (isAutoPlaying) {
+                autoPlayBtn.classList.add('bg-ios-blue/10', 'dark:bg-ios-blueDark/20', 'text-ios-blue', 'dark:text-ios-blueDark');
+                playBtn.innerHTML = '<i class="fa fa-pause"></i><span>Pause</span>';
+                
+                if (!isPlaying) {
+                    startPlayback();
+                }
+            } else {
+                autoPlayBtn.classList.remove('bg-ios-blue/10', 'dark:bg-ios-blueDark/20', 'text-ios-blue', 'dark:text-ios-blueDark');
+                stopPlayback();
+            }
+        }
+
+        // 上一个单词 - 自动播放功能
+        function prevWord() {
+            if (filteredWords.length === 0) return;
+            
+            resetInactivityTimer();
+            stopPlayback();
+            
+            currentIndex = (currentIndex - 1 + filteredWords.length) % filteredWords.length;
+            updateDisplay().then(() => {
+                // 更新显示完成后自动播放
+                setTimeout(startPlayback, 300);
+            });
+        }
+
+        // 下一个单词 - 自动播放功能
+        function nextWord() {
+            if (filteredWords.length === 0) return;
+            
+            resetInactivityTimer();
+            stopPlayback();
+            
+            currentIndex = (currentIndex + 1) % filteredWords.length;
+            updateDisplay().then(() => {
+                // 更新显示完成后自动播放
+                setTimeout(startPlayback, 300);
+            });
+        }
+
+        // 主题切换
+        function toggleTheme() {
+            resetInactivityTimer();
+            
+            document.documentElement.classList.toggle('dark');
+            
+            if (document.documentElement.classList.contains('dark')) {
+                localStorage.setItem('theme', 'dark');
+            } else {
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        function initTheme() {
+            if (localStorage.getItem('theme') === 'dark' || 
+                (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+
+        function initListActivityListener() {
+            wordList.addEventListener('scroll', () => {
+                updateListActivity();
+                // 保存滚动位置
+                listStates[activeList].scrollPosition = wordList.scrollTop;
+                localStorage.setItem('wordListStates', JSON.stringify(listStates));
+            });
+            wordList.addEventListener('mousemove', updateListActivity);
+            wordList.addEventListener('click', updateListActivity);
+            
+            lastListActivityTime = Date.now();
+        }
+
+        // 初始化按钮显示/隐藏功能
+        function initControlsVisibility() {
+            // 监听鼠标活动
+            document.addEventListener('mousemove', (e) => {
+                // 忽略微小移动
+                if (Math.abs(e.movementX) > 1 || Math.abs(e.movementY) > 1) {
+                    resetInactivityTimer();
+                }
+            });
+            
+            document.addEventListener('click', resetInactivityTimer);
+            document.addEventListener('keydown', resetInactivityTimer);
+            
+            // 初始启动计时器
+            resetInactivityTimer();
+        }
+
+        // 全屏切换功能
+        function toggleFullscreen() {
+            resetInactivityTimer();
+            
+            if (!isFullscreen) {
+                enterFullscreen();
+            } else {
+                exitFullscreen();
+            }
+        }
+
+        function enterFullscreen() {
+            // 保存当前状态以便退出时恢复
+            pronunciationArea.dataset.originalClasses = pronunciationArea.className;
+            // 保存原始字体大小设置
+            pronunciationArea.dataset.originalWordSize = wordDisplay.style.fontSize || '';
+            pronunciationArea.dataset.originalPhoneticSize = phoneticDisplay.style.fontSize || '';
+            
+            // 隐藏页面其他元素
+            const header = document.querySelector('header');
+            header.style.transition = 'opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+            header.style.opacity = '0';
+            const sidePanel = document.querySelectorAll('.lg\\:col-span-2')[1];
+            sidePanel.style.transition = 'opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+            sidePanel.style.opacity = '0';
+            
+            // 等待透明度动画完成后再完全隐藏
+            setTimeout(() => {
+                header.style.display = 'none';
+                sidePanel.style.display = 'none';
+                
+                // 添加全屏类并设置样式
+                pronunciationArea.classList.add('fullscreen');
+                fullscreenBackdrop.classList.add('show');
+                
+                // 更改按钮图标
+                fullscreenToggle.innerHTML = '<i class="fa fa-compress"></i>';
+                
+                // 调整字体大小
+                requestAnimationFrame(() => {
+                    wordDisplay.style.fontSize = 'clamp(3rem, 8vw, 6rem)';
+                    phoneticDisplay.style.fontSize = 'clamp(1.2rem, 3vw, 2rem)';
+                });
+                
+                // 更新状态
+                isFullscreen = true;
+                
+                // 启动全屏模式下的自动隐藏功能
+                resetInactivityTimer();
+                
+                // 如果正在播放，继续播放
+                if (isPlaying) {
+                    startPlayback();
+                }
+            }, 300);
+        }
+
+        function exitFullscreen() {
+            // 恢复原始类
+            pronunciationArea.className = pronunciationArea.dataset.originalClasses;
+            
+            // 恢复显示页面其他元素
+            const header = document.querySelector('header');
+            header.style.display = '';
+            header.style.opacity = '1';
+            const sidePanel = document.querySelectorAll('.lg\\:col-span-2')[1];
+            sidePanel.style.display = '';
+            sidePanel.style.opacity = '1';
+            
+            // 移除全屏相关样式
+            fullscreenBackdrop.classList.remove('show');
+            
+            // 恢复按钮图标
+            fullscreenToggle.innerHTML = '<i class="fa fa-expand"></i>';
+            
+            // 恢复原始字体大小
+            requestAnimationFrame(() => {
+                wordDisplay.style.fontSize = pronunciationArea.dataset.originalWordSize;
+                phoneticDisplay.style.fontSize = pronunciationArea.dataset.originalPhoneticSize;
+            });
+            
+            // 更新状态
+            isFullscreen = false;
+            
+            // 清除计时器
+            if (mouseInactivityTimer) {
+                clearTimeout(mouseInactivityTimer);
+            }
+            
+            // 确保按钮显示
+            showControls();
+            
+            // 如果正在播放，继续播放
+            if (isPlaying) {
+                startPlayback();
+            }
+        }
+
+        // 全屏状态下的键盘快捷键
+        function handleFullscreenKeydown(e) {
+            if (!isFullscreen) return;
+            
+            // 空格键播放/暂停
+            if (e.key === ' ') {
+                e.preventDefault();
+                togglePlay();
+            }
+            
+            // 左箭头前一个单词
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                prevWord();
+            }
+            
+            // 右箭头后一个单词
+            if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                nextWord();
+            }
+            
+            // ESC键退出全屏
+            if (e.key === 'Escape') {
+                exitFullscreen();
+            }
+            
+            // 任何按键都重置不活动计时器
+            resetInactivityTimer();
+        }
+
+        // 事件监听
+        prevBtn.addEventListener('click', prevWord);
+        playBtn.addEventListener('click', togglePlay);
+        nextBtn.addEventListener('click', nextWord);
+        slowBtn.addEventListener('click', toggleSlow);
+        themeToggle.addEventListener('click', toggleTheme);
+        autoPlayBtn.addEventListener('click', toggleAutoPlay);
+        addCollectionBtn.addEventListener('click', toggleCollect);
+        collectedListBtn.addEventListener('click', toggleList);
+        exportCollectedBtn.addEventListener('click', exportCollectedWords);
+        fullscreenToggle.addEventListener('click', toggleFullscreen);
+        document.addEventListener('keydown', handleFullscreenKeydown);
+
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.word-item') && filteredWords.length > 0) {
+                const items = Array.from(document.querySelectorAll('.word-item'));
+                const index = items.indexOf(e.target.closest('.word-item'));
+                if (index !== -1) {
+                    stopPlayback();
+                    currentIndex = index;
+                    updateDisplay();
+                }
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (filteredWords.length === 0 || isFullscreen) return;
+            
+            if (e.key === ' ') {
+                e.preventDefault();
+                togglePlay();
+            }
+            
+            resetInactivityTimer();
+        });
+
+        // 页面关闭前保存状态
+        window.addEventListener('beforeunload', () => {
+            // 保存当前列表状态
+            listStates[activeList].currentIndex = currentIndex;
+            listStates[activeList].scrollPosition = wordList.scrollTop;
+            if (isPlaying || isAutoPlaying) {
+                listStates[activeList].lastPlayedIndex = currentIndex;
+            }
+            localStorage.setItem('wordListStates', JSON.stringify(listStates));
+            
+            // 保存收藏列表
+            localStorage.setItem('collectedWords', JSON.stringify(collectedWords));
+        });
+
+        // 初始化
+        initTheme();
+        initVoices();
+        initListActivityListener();
+        initControlsVisibility();
+        
+        // 初始化过滤后的单词列表
+        filteredWords = activeList === 'main' ? [...allWords] : collectedWords.map(word => ({
+            word,
+            phonetic: allWords.find(w => w.word === word)?.phonetic
+        }));
+        
+        // 确保当前索引有效
+        if (currentIndex >= filteredWords.length) currentIndex = 0;
+        
+        // 渲染列表和更新显示
+        renderWordList();
+        updateDisplay();
+        updateWordStats();
+    </script>
+</body>
+</html>
