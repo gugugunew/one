@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文本对比工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 引入SheetJS库用于Excel导出 -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#f97316',
+                        accent: '#8b5cf6',
+                        neutral: '#1f2937',
+                        'neutral-light': '#f3f4f6',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .highlight {
+                @apply bg-yellow-200 rounded px-1;
+            }
+            .score-display {
+                @apply text-lg font-semibold p-2 rounded-lg transition-all duration-300;
+            }
+            .score-high {
+                @apply bg-green-100 text-green-800;
+            }
+            .score-medium {
+                @apply bg-yellow-100 text-yellow-800;
+            }
+            .score-low {
+                @apply bg-red-100 text-red-800;
+            }
+            .input-focus {
+                @apply border-primary ring-2 ring-primary/20;
+            }
+            .sort-btn {
+                @apply px-3 py-1 rounded-md text-sm transition-all duration-200 border;
+            }
+            .sort-btn-active {
+                @apply bg-primary text-white border-primary;
+            }
+            .filter-btn {
+                @apply px-3 py-1 rounded-md text-sm transition-all duration-200 border ml-2;
+            }
+            .filter-btn-active {
+                @apply bg-accent text-white border-accent;
+            }
+            .result-text {
+                @apply whitespace-pre-wrap break-words;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+    <div class="container mx-auto px-4 py-8 max-w-5xl">
+        <header class="mb-8 text-center">
+            <h1 class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold text-neutral mb-2">
+                <i class="fa fa-align-left mr-2 text-primary"></i>文本对比工具
+            </h1>
+            <p class="text-gray-600 max-w-2xl mx-auto">
+                输入两段文本，系统将高亮显示相同的单词，并计算匹配得分
+            </p>
+        </header>
+
+        <main class="bg-white rounded-xl shadow-lg p-6 md:p-8 mb-8 transition-all duration-300 hover:shadow-xl">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- 左侧输入框 -->
+                <div class="space-y-3">
+                    <label for="leftText" class="block text-sm font-medium text-gray-700">
+                        基准文本 <span class="text-gray-500">(作为对比标准)</span>
+                    </label>
+                    <div class="relative">
+                        <textarea 
+                            id="leftText" 
+                            class="w-full h-40 p-3 border border-gray-300 rounded-lg focus:outline-none focus:input-focus resize-none transition-all"
+                            placeholder="输入基准文本..."></textarea>
+                        <div class="absolute right-3 bottom-3 text-xs text-gray-500">
+                            <span id="leftWordCount">0</span> 个单词
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧输入框 -->
+                <div class="space-y-3">
+                    <label for="rightText" class="block text-sm font-medium text-gray-700">
+                        对比文本 <span class="text-gray-500">(按回车添加新句子)</span>
+                    </label>
+                    <div class="relative">
+                        <textarea 
+                            id="rightText" 
+                            class="w-full h-40 p-3 border border-gray-300 rounded-lg focus:outline-none focus:input-focus resize-none transition-all"
+                            placeholder="输入需要对比的文本..."></textarea>
+                        <div class="absolute right-3 bottom-3 text-xs text-gray-500">
+                            <span id="rightWordCount">0</span> 个单词
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 对比按钮 -->
+            <div class="mt-6 flex justify-center gap-4">
+                <button 
+                    id="compareBtn" 
+                    class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary/50 flex items-center justify-center">
+                    <i class="fa fa-exchange mr-2"></i> 开始对比
+                </button>
+                <button 
+                    id="exportBtn" 
+                    class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500/50 flex items-center justify-center opacity-50 cursor-not-allowed"
+                    disabled>
+                    <i class="fa fa-download mr-2"></i> 导出Excel
+                </button>
+            </div>
+        </main>
+
+        <!-- 结果展示区域 -->
+        <section id="resultsSection" class="bg-white rounded-xl shadow-lg p-6 md:p-8 mb-8 opacity-0 transition-all duration-500">
+            <h2 class="text-xl font-bold text-neutral mb-4 flex items-center">
+                <i class="fa fa-bar-chart mr-2 text-accent"></i> 对比结果
+            </h2>
+
+            <!-- 筛选控制 -->
+            <div class="mb-4 flex flex-wrap gap-2 justify-between items-center">
+                <div class="flex flex-wrap gap-2">
+                    <span class="text-sm font-medium text-gray-700">排序方式:</span>
+                    <button id="sortHighToLow" class="sort-btn sort-btn-active">
+                        <i class="fa fa-sort-numeric-desc mr-1"></i> 高分到低分
+                    </button>
+                    <button id="sortLowToHigh" class="sort-btn">
+                        <i class="fa fa-sort-numeric-asc mr-1"></i> 低分到高分
+                    </button>
+                    <button id="sortOriginal" class="sort-btn">
+                        <i class="fa fa-sort-amount-asc mr-1"></i> 原始顺序
+                    </button>
+                </div>
+                
+                <div class="flex items-center gap-2 mt-2 sm:mt-0">
+                    <label for="filterScore" class="text-sm font-medium text-gray-700">
+                        筛选得分:
+                    </label>
+                    <div class="flex">
+                        <input 
+                            type="number" 
+                            id="filterScore" 
+                            min="0" 
+                            max="100" 
+                            value="50" 
+                            class="w-16 p-1 border border-gray-300 rounded-l-md focus:outline-none focus:input-focus text-sm">
+                        <button id="filterAboveBtn" class="filter-btn filter-btn-active">
+                            超过 <span id="filterValue">50</span>%
+                        </button>
+                        <button id="filterAtLeastBtn" class="filter-btn">
+                            高于等于 <span id="filterValueAtLeast">50</span>%
+                        </button>
+                        <button id="filterBelowBtn" class="filter-btn">
+                            低于 <span id="filterValueBelow">50</span>%
+                        </button>
+                        <button id="showAllBtn" class="filter-btn">
+                            显示全部
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 统计信息 -->
+            <div class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <div class="text-sm text-gray-600">总题目数</div>
+                    <div class="text-2xl font-bold text-neutral" id="totalQuestions">0</div>
+                </div>
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <div class="text-sm text-green-600">
+                        <i class="fa fa-check-circle mr-1"></i> 高于等于 <span id="thresholdValueAtLeast">50</span>% 的题目
+                    </div>
+                    <div class="text-2xl font-bold text-green-700" id="atLeastThreshold">0 (0%)</div>
+                </div>
+                <div class="bg-red-50 p-4 rounded-lg">
+                    <div class="text-sm text-red-600">
+                        <i class="fa fa-times-circle mr-1"></i> 低于 <span id="thresholdValueBelow">50</span>% 的题目
+                    </div>
+                    <div class="text-2xl font-bold text-red-700" id="belowThreshold">0 (0%)</div>
+                </div>
+            </div>
+
+            <!-- 总得分 -->
+            <div class="mb-6">
+                <h3 class="text-lg font-medium text-gray-700 mb-2">总体匹配度</h3>
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <div class="flex-1">
+                        <div class="score-display" id="totalScore">0/0</div>
+                    </div>
+                    <div class="flex-1">
+                        <div class="bg-gray-200 rounded-full h-6">
+                            <div id="scoreProgress" class="bg-accent h-6 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                        </div>
+                        <div class="mt-1 text-sm text-gray-500 flex justify-between">
+                            <span>0%</span>
+                            <span id="percentage">0%</span>
+                            <span>100%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 详细对比 -->
+            <div>
+                <h3 class="text-lg font-medium text-gray-700 mb-2">详细对比</h3>
+                <div id="comparisonResults" class="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                    <!-- 结果将动态插入这里 -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 使用说明 -->
+        <section class="bg-neutral-light rounded-xl p-6 md:p-8">
+            <h2 class="text-xl font-bold text-neutral mb-4 flex items-center">
+                <i class="fa fa-info-circle mr-2 text-secondary"></i> 使用说明
+            </h2>
+            <ul class="list-disc pl-5 space-y-2 text-gray-700">
+                <li>在左侧输入基准文本，右侧输入需要对比的文本</li>
+                <li>右侧文本中按回车可以添加多个句子，每个句子都会单独与左侧文本进行对比</li>
+                <li>点击"开始对比"按钮后，系统会高亮显示两段文本中相同的单词</li>
+                <li>得分计算方式：匹配的单词数/右侧文本的总单词数</li>
+                <li>可以通过排序按钮对结果进行排序</li>
+                <li>可以通过筛选功能筛选出符合不同分数条件的题目</li>
+                <li>点击"导出Excel"按钮可以将所有结果导出为Excel文件</li>
+                <li>Excel中高于或等于50%的句子将填充黄色背景，匹配的单词为绿色</li>
+                <li>Excel中低于50%的句子不填充背景色，匹配的单词同样为绿色</li>
+            </ul>
+        </section>
+    </div>
+
+    <footer class="bg-neutral text-white py-6 mt-10">
+        <div class="container mx-auto px-4 text-center">
+            <p>© 2025 文本对比工具 | 设计与开发</p>
+            <div class="mt-2 flex justify-center space-x-4">
+                <a href="#" class="text-gray-300 hover:text-white transition-colors">
+                    <i class="fa fa-question-circle"></i> 帮助
+                </a>
+                <a href="#" class="text-gray-300 hover:text-white transition-colors">
+                    <i class="fa fa-github"></i> 源码
+                </a>
+                <a href="#" class="text-gray-300 hover:text-white transition-colors">
+                    <i class="fa fa-envelope"></i> 联系我们
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 日志函数，用于调试
+            function log(message) {
+                console.log(`[文本对比工具] ${message}`);
+            }
+            
+            log('初始化文本对比工具...');
+            
+            // 获取DOM元素
+            const leftText = document.getElementById('leftText');
+            const rightText = document.getElementById('rightText');
+            const compareBtn = document.getElementById('compareBtn');
+            const exportBtn = document.getElementById('exportBtn');
+            const resultsSection = document.getElementById('resultsSection');
+            const comparisonResults = document.getElementById('comparisonResults');
+            const totalScore = document.getElementById('totalScore');
+            const scoreProgress = document.getElementById('scoreProgress');
+            const percentage = document.getElementById('percentage');
+            const leftWordCount = document.getElementById('leftWordCount');
+            const rightWordCount = document.getElementById('rightWordCount');
+            const sortHighToLow = document.getElementById('sortHighToLow');
+            const sortLowToHigh = document.getElementById('sortLowToHigh');
+            const sortOriginal = document.getElementById('sortOriginal');
+            const filterScore = document.getElementById('filterScore');
+            const filterAboveBtn = document.getElementById('filterAboveBtn');
+            const filterAtLeastBtn = document.getElementById('filterAtLeastBtn');
+            const filterBelowBtn = document.getElementById('filterBelowBtn');
+            const showAllBtn = document.getElementById('showAllBtn');
+            const totalQuestions = document.getElementById('totalQuestions');
+            const atLeastThreshold = document.getElementById('atLeastThreshold');
+            const belowThreshold = document.getElementById('belowThreshold');
+            const thresholdValueAtLeast = document.getElementById('thresholdValueAtLeast');
+            const thresholdValueBelow = document.getElementById('thresholdValueBelow');
+            const filterValue = document.getElementById('filterValue');
+            const filterValueAtLeast = document.getElementById('filterValueAtLeast');
+            const filterValueBelow = document.getElementById('filterValueBelow');
+            
+            // 存储原始结果数据（不修改，用于排序参考）
+            let originalResults = [];
+            // 当前排序方式
+            let currentSort = 'highToLow';
+            // 当前筛选方式
+            let currentFilter = 'above';
+            // 当前筛选阈值
+            let currentThreshold = 50;
+
+            // 更新单词计数
+            function updateWordCount() {
+                try {
+                    const leftWords = leftText.value.trim().split(/\s+/).filter(word => word.length > 0);
+                    const rightWords = rightText.value.trim().split(/\s+/).filter(word => word.length > 0);
+                    
+                    leftWordCount.textContent = leftWords.length;
+                    rightWordCount.textContent = rightWords.length;
+                } catch (error) {
+                    log(`更新单词计数时出错: ${error.message}`);
+                }
+            }
+
+            leftText.addEventListener('input', updateWordCount);
+            rightText.addEventListener('input', updateWordCount);
+
+            // 处理对比逻辑
+            compareBtn.addEventListener('click', () => {
+                log('用户点击了对比按钮');
+                
+                try {
+                    const left = leftText.value.trim();
+                    const right = rightText.value.trim();
+
+                    if (!left || !right) {
+                        alert('请确保两个输入框都有内容');
+                        log('用户未输入文本，取消对比');
+                        return;
+                    }
+
+                    // 清空之前的结果
+                    comparisonResults.innerHTML = '';
+                    originalResults = [];
+                    
+                    // 处理左侧文本（转为小写并按空格分割）
+                    const leftWords = left.toLowerCase().split(/\s+/).filter(word => word.length > 0);
+                    
+                    // 处理右侧文本（按回车分割成多个句子）
+                    const rightSentences = right.split('\n').filter(sentence => sentence.trim().length > 0);
+                    
+                    let totalMatched = 0;
+                    let totalRightWords = 0;
+                    
+                    // 为每个句子生成对比结果
+                    rightSentences.forEach((sentence, index) => {
+                        const sentenceWords = sentence.toLowerCase().split(/\s+/).filter(word => word.length > 0);
+                        const matchedWords = [];
+                        let matchedCount = 0;
+                        
+                        // 检查每个单词是否在左侧文本中
+                        sentenceWords.forEach(word => {
+                            if (leftWords.includes(word)) {
+                                matchedWords.push(`<span class="highlight">${word}</span>`);
+                                matchedCount++;
+                            } else {
+                                matchedWords.push(word);
+                            }
+                        });
+                        
+                        // 更新总匹配数和总右侧单词数
+                        totalMatched += matchedCount;
+                        totalRightWords += sentenceWords.length;
+                        
+                        // 计算句子的得分百分比
+                        const sentenceScore = sentenceWords.length > 0 ? matchedCount / sentenceWords.length : 0;
+                        const sentencePercentage = Math.round(sentenceScore * 100);
+                        
+                        // 存储原始结果数据（不修改）
+                        originalResults.push({
+                            index,
+                            sentence,
+                            matchedWords,
+                            matchedCount,
+                            totalWords: sentenceWords.length,
+                            score: sentenceScore,
+                            percentage: sentencePercentage,
+                            // 保存纯文本版本的句子，用于导出
+                            plainText: sentence,
+                            // 保存带标记的文本，用于导出时识别高亮单词
+                            markedText: matchedWords.join(' ')
+                        });
+                    });
+                    
+                    // 更新统计信息
+                    updateStatistics();
+                    
+                    // 计算总得分
+                    const overallScore = totalRightWords > 0 ? totalMatched / totalRightWords : 0;
+                    
+                    // 更新总得分显示
+                    totalScore.textContent = `${totalMatched}/${totalRightWords}`;
+                    percentage.textContent = `${Math.round(overallScore * 100)}%`;
+                    
+                    // 设置进度条
+                    scoreProgress.style.width = `${Math.round(overallScore * 100)}%`;
+                    
+                    // 设置总得分颜色
+                    if (overallScore >= 0.7) {
+                        totalScore.className = 'score-display score-high';
+                    } else if (overallScore >= 0.4) {
+                        totalScore.className = 'score-display score-medium';
+                    } else {
+                        totalScore.className = 'score-display score-low';
+                    }
+                    
+                    // 默认按高分到低分排序并显示超过50%的题目
+                    applySortAndFilter();
+                    
+                    // 启用导出按钮
+                    exportBtn.disabled = false;
+                    exportBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    
+                    // 显示结果区域
+                    resultsSection.style.opacity = '1';
+                    resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    
+                    log(`对比完成，共处理 ${rightSentences.length} 个句子`);
+                } catch (error) {
+                    log(`对比过程中出错: ${error.message}`);
+                    alert(`对比过程中出错: ${error.message}`);
+                }
+            });
+
+            // 更新统计信息
+            function updateStatistics() {
+                try {
+                    const total = originalResults.length;
+                    const atLeastCount = originalResults.filter(r => r.percentage >= currentThreshold).length;
+                    const belowCount = originalResults.filter(r => r.percentage < currentThreshold).length;
+                    
+                    totalQuestions.textContent = total;
+                    atLeastThreshold.textContent = `${atLeastCount} (${Math.round((atLeastCount / total) * 100)}%)`;
+                    belowThreshold.textContent = `${belowCount} (${Math.round((belowCount / total) * 100)}%)`;
+                    
+                    // 更新阈值显示
+                    thresholdValueAtLeast.textContent = currentThreshold;
+                    thresholdValueBelow.textContent = currentThreshold;
+                    filterValue.textContent = currentThreshold;
+                    filterValueAtLeast.textContent = currentThreshold;
+                    filterValueBelow.textContent = currentThreshold;
+                    
+                    log(`统计信息更新: 总题数=${total}, 高于等于${currentThreshold}%=${atLeastCount}, 低于${currentThreshold}%=${belowCount}`);
+                } catch (error) {
+                    log(`更新统计信息时出错: ${error.message}`);
+                }
+            }
+
+            // 应用排序和筛选
+            function applySortAndFilter() {
+                // 创建原始结果的副本，避免修改原始数据
+                let sortedResults = [...originalResults];
+                
+                // 根据当前排序方式排序
+                if (currentSort === 'highToLow') {
+                    sortedResults.sort((a, b) => b.percentage - a.percentage);
+                } else if (currentSort === 'lowToHigh') {
+                    sortedResults.sort((a, b) => a.percentage - b.percentage);
+                } else { // 原始顺序
+                    sortedResults.sort((a, b) => a.index - b.index);
+                }
+                
+                // 应用筛选
+                let filteredResults = [...sortedResults];
+                
+                if (currentFilter === 'above') {
+                    filteredResults = sortedResults.filter(r => r.percentage > currentThreshold);
+                } else if (currentFilter === 'atLeast') {
+                    filteredResults = sortedResults.filter(r => r.percentage >= currentThreshold);
+                } else if (currentFilter === 'below') {
+                    filteredResults = sortedResults.filter(r => r.percentage < currentThreshold);
+                }
+                // 显示全部则不筛选
+                
+                // 渲染结果
+                renderResults(filteredResults);
+            }
+
+            // 渲染结果
+            function renderResults(results) {
+                try {
+                    // 清空当前结果
+                    comparisonResults.innerHTML = '';
+                    
+                    // 如果没有结果，显示提示
+                    if (results.length === 0) {
+                        comparisonResults.innerHTML = `
+                            <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg text-center">
+                                <i class="fa fa-info-circle text-blue-500 mr-2"></i>
+                                <span>没有找到符合条件的题目</span>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    // 渲染结果
+                    results.forEach((result, sortIndex) => {
+                        // 创建结果元素
+                        const resultItem = document.createElement('div');
+                        resultItem.className = 'bg-gray-50 p-4 rounded-lg border-l-4 transition-all hover:shadow-md';
+                        
+                        // 设置边框颜色
+                        if (result.percentage >= 70) {
+                            resultItem.classList.add('border-green-500');
+                        } else if (result.percentage >= 40) {
+                            resultItem.classList.add('border-yellow-500');
+                        } else {
+                            resultItem.classList.add('border-red-500');
+                        }
+                        
+                        // 设置分数颜色
+                        const scoreClass = result.percentage >= 70 ? 'text-green-600' : 
+                                          result.percentage >= 40 ? 'text-yellow-600' : 'text-red-600';
+                        
+                        // 计算排序后的序号（从1开始）
+                        const displaySortIndex = sortIndex + 1;
+                        
+                        resultItem.innerHTML = `
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="font-medium">
+                                    <span class="text-gray-500">原始题号:</span> ${result.index + 1}
+                                    <span class="mx-2">|</span>
+                                    <span class="text-accent">排序后:</span> ${displaySortIndex}
+                                </span>
+                                <span class="text-sm ${scoreClass}">${result.matchedCount}/${result.totalWords} (${result.percentage}%)</span>
+                            </div>
+                            <p class="text-gray-800 result-text">${result.matchedWords.join(' ')}</p>
+                        `;
+                        
+                        comparisonResults.appendChild(resultItem);
+                    });
+                } catch (error) {
+                    log(`渲染结果时出错: ${error.message}`);
+                }
+            }
+
+            // 导出Excel
+            exportBtn.addEventListener('click', () => {
+                log('用户点击了导出Excel按钮');
+                
+                if (originalResults.length === 0) {
+                    alert('没有可导出的结果');
+                    return;
+                }
+                
+                try {
+                    // 创建工作簿
+                    const wb = XLSX.utils.book_new();
+                    
+                    // 复制原始结果并按要求排序
+                    // 低于50%的按高到低排序，然后是高于等于50%的按原始顺序
+                    let exportResults = [...originalResults];
+                    const below50 = exportResults.filter(r => r.percentage < 50).sort((a, b) => b.percentage - a.percentage);
+                    const atLeast50 = exportResults.filter(r => r.percentage >= 50);
+                    
+                    // 合并结果，先放低于50%的（已排序），再放高于等于50%的
+                    exportResults = [...below50, ...atLeast50];
+                    
+                    // 创建工作表数据
+                    const wsData = [['题目序号', '句子', '正确率']];
+                    
+                    // 为每个结果创建行
+                    exportResults.forEach((result, index) => {
+                        // 提取高亮单词（去除HTML标签）
+                        const markedText = result.markedText;
+                        let plainText = result.plainText; // 改为let，允许修改
+                        
+                        // 创建带样式的单元格
+                        const cell = {
+                            t: 's',
+                            v: plainText,
+                            s: {}
+                        };
+                        
+                        // 如果得分高于等于50%，设置背景色为黄色
+                        if (result.percentage >= 50) {
+                            cell.s.fill = {
+                                patternType: 'solid',
+                                fgColor: { rgb: 'FFFF00' } // 黄色
+                            };
+                        }
+                        
+                        // 处理高亮单词（绿色）
+                        const richText = [];
+                        let currentPos = 0;
+                        
+                        // 查找所有高亮的单词
+                        const regex = /<span class="highlight">([^<]+)<\/span>/g;
+                        let match;
+                        
+                        while ((match = regex.exec(markedText)) !== null) {
+                            const highlightedWord = match[1];
+                            const startIndex = match.index - currentPos;
+                            
+                            // 添加非高亮部分
+                            if (startIndex > 0) {
+                                richText.push({
+                                    t: plainText.substring(0, startIndex),
+                                    a: { name: 'Arial', sz: 12 }
+                                });
+                                plainText = plainText.substring(startIndex);
+                            }
+                            
+                            // 添加高亮部分（绿色）
+                            richText.push({
+                                t: highlightedWord,
+                                a: { name: 'Arial', sz: 12, color: { rgb: '008000' } } // 绿色
+                            });
+                            
+                            // 更新当前位置
+                            currentPos = regex.lastIndex;
+                            
+                            // 调整plainText
+                            plainText = plainText.substring(highlightedWord.length);
+                        }
+                        
+                        // 添加剩余部分
+                        if (plainText.length > 0) {
+                            richText.push({
+                                t: plainText,
+                                a: { name: 'Arial', sz: 12 }
+                            });
+                        }
+                        
+                        // 设置富文本
+                        cell.r = richText;
+                        
+                        // 添加行数据
+                        wsData.push([
+                            result.index + 1, // 题目序号
+                            cell, // 句子（带样式）
+                            { t: 'n', v: result.percentage / 100, z: '0%' } // 正确率（百分比格式）
+                        ]);
+                    });
+                    
+                    // 创建工作表
+                    const ws = XLSX.utils.aoa_to_sheet(wsData);
+                    
+                    // 设置列宽
+                    ws['!cols'] = [
+                        { wch: 10 },  // 题目序号列宽
+                        { wch: 60 },  // 句子列宽
+                        { wch: 15 }   // 正确率列宽
+                    ];
+                    
+                    // 添加工作表到工作簿
+                    XLSX.utils.book_append_sheet(wb, ws, '文本对比结果');
+                    
+                    // 生成Excel文件并下载
+                    XLSX.writeFile(wb, '文本对比结果.xlsx');
+                    
+                    log('Excel导出成功');
+                } catch (error) {
+                    log(`Excel导出失败: ${error.message}`);
+                    alert(`Excel导出失败: ${error.message}`);
+                }
+            });
+
+            // 绑定排序按钮事件
+            sortHighToLow.addEventListener('click', () => {
+                currentSort = 'highToLow';
+                // 更新按钮状态
+                [sortHighToLow, sortLowToHigh, sortOriginal].forEach(btn => btn.classList.remove('sort-btn-active'));
+                sortHighToLow.classList.add('sort-btn-active');
+                applySortAndFilter();
+                log('切换排序方式: 高分到低分');
+            });
+            
+            sortLowToHigh.addEventListener('click', () => {
+                currentSort = 'lowToHigh';
+                // 更新按钮状态
+                [sortHighToLow, sortLowToHigh, sortOriginal].forEach(btn => btn.classList.remove('sort-btn-active'));
+                sortLowToHigh.classList.add('sort-btn-active');
+                applySortAndFilter();
+                log('切换排序方式: 低分到高分');
+            });
+            
+            sortOriginal.addEventListener('click', () => {
+                currentSort = 'original';
+                // 更新按钮状态
+                [sortHighToLow, sortLowToHigh, sortOriginal].forEach(btn => btn.classList.remove('sort-btn-active'));
+                sortOriginal.classList.add('sort-btn-active');
+                applySortAndFilter();
+                log('切换排序方式: 原始顺序');
+            });
+            
+            // 绑定筛选按钮事件
+            filterAboveBtn.addEventListener('click', () => {
+                currentFilter = 'above';
+                // 更新按钮状态
+                [filterAboveBtn, filterAtLeastBtn, filterBelowBtn, showAllBtn].forEach(btn => btn.classList.remove('filter-btn-active'));
+                filterAboveBtn.classList.add('filter-btn-active');
+                applySortAndFilter();
+                updateStatistics();
+                log(`切换筛选方式: 超过${currentThreshold}%`);
+            });
+            
+            filterAtLeastBtn.addEventListener('click', () => {
+                currentFilter = 'atLeast';
+                // 更新按钮状态
+                [filterAboveBtn, filterAtLeastBtn, filterBelowBtn, showAllBtn].forEach(btn => btn.classList.remove('filter-btn-active'));
+                filterAtLeastBtn.classList.add('filter-btn-active');
+                applySortAndFilter();
+                updateStatistics();
+                log(`切换筛选方式: 高于等于${currentThreshold}%`);
+            });
+            
+            filterBelowBtn.addEventListener('click', () => {
+                currentFilter = 'below';
+                // 更新按钮状态
+                [filterAboveBtn, filterAtLeastBtn, filterBelowBtn, showAllBtn].forEach(btn => btn.classList.remove('filter-btn-active'));
+                filterBelowBtn.classList.add('filter-btn-active');
+                applySortAndFilter();
+                updateStatistics();
+                log(`切换筛选方式: 低于${currentThreshold}%`);
+            });
+            
+            showAllBtn.addEventListener('click', () => {
+                currentFilter = 'all';
+                // 更新按钮状态
+                [filterAboveBtn, filterAtLeastBtn, filterBelowBtn, showAllBtn].forEach(btn => btn.classList.remove('filter-btn-active'));
+                showAllBtn.classList.add('filter-btn-active');
+                applySortAndFilter();
+                log('切换筛选方式: 显示全部');
+            });
+            
+            // 监听筛选分数输入变化
+            filterScore.addEventListener('input', () => {
+                const value = parseInt(filterScore.value) || 50;
+                filterScore.value = Math.max(0, Math.min(100, value));
+            });
+            
+            filterScore.addEventListener('change', () => {
+                currentThreshold = parseInt(filterScore.value) || 50;
+                // 更新显示的阈值
+                filterValue.textContent = currentThreshold;
+                filterValueAtLeast.textContent = currentThreshold;
+                filterValueBelow.textContent = currentThreshold;
+                thresholdValueAtLeast.textContent = currentThreshold;
+                thresholdValueBelow.textContent = currentThreshold;
+                
+                applySortAndFilter();
+                updateStatistics();
+                log(`更新筛选阈值: ${currentThreshold}%`);
+            });
+
+            // 添加输入框的动画效果
+            [leftText, rightText].forEach(textarea => {
+                textarea.addEventListener('focus', () => {
+                    textarea.classList.add('border-primary', 'shadow-sm');
+                });
+                
+                textarea.addEventListener('blur', () => {
+                    textarea.classList.remove('border-primary', 'shadow-sm');
+                });
+            });
+
+            // 按钮悬停效果
+            compareBtn.addEventListener('mouseenter', () => {
+                compareBtn.classList.add('shadow-md');
+            });
+            
+            compareBtn.addEventListener('mouseleave', () => {
+                compareBtn.classList.remove('shadow-md');
+            });
+            
+            exportBtn.addEventListener('mouseenter', () => {
+                if (!exportBtn.disabled) {
+                    exportBtn.classList.add('shadow-md');
+                }
+            });
+            
+            exportBtn.addEventListener('mouseleave', () => {
+                if (!exportBtn.disabled) {
+                    exportBtn.classList.remove('shadow-md');
+                }
+            });
+
+            // 初始化单词计数
+            updateWordCount();
+            log('文本对比工具初始化完成');
+        });
+    </script>
+</body>
+</html>
